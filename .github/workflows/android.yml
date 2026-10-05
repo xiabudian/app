@@ -45,18 +45,18 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle.log
 
-      - name: 失败时回传日志（推到 logs 分支供排查）
+      - name: 失败时回传日志（强制推到 logs 分支，提交信息含报错尾部）
         if: failure()
         run: |
           git config user.email "ci@local"
           git config user.name "CI"
           mkdir -p ci-logs
-          cp -f build.log ci-logs/ 2>/dev/null || true
-          cp -f sync.log ci-logs/ 2>/dev/null || true
-          cp -f gradle.log ci-logs/ 2>/dev/null || true
-          git add -A ci-logs
-          git commit -m "ci: 失败日志" || echo "无日志"
-          git push origin "HEAD:refs/heads/logs" || true
+          for f in build.log sync.log gradle.log; do cp -f "$f" ci-logs/ 2>/dev/null || true; done
+          errtail=$(tail -c 800 sync.log 2>/dev/null | tr '\n' ' ' | tr -d '\r')
+          rootls=$(ls -1 | tr '\n' ' ' | head -c 150)
+          git add -A
+          git commit -m "ci: 失败日志 root=[$rootls] ERR=[$errtail]" || echo "commit 跳过（无变更）"
+          git push -f origin "HEAD:refs/heads/logs" || true
 
       - name: 上传 APK（在 Actions 页面下载）
         uses: actions/upload-artifact@v4
