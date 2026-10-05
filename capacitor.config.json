@@ -1,0 +1,8 @@
+{
+  "appId": "com.aichat.phoneapp",
+  "appName": "AI 聊天助手",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

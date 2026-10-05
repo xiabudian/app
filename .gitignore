@@ -1,0 +1,17 @@
+node_modules
+dist
+*.local
+.DS_Store
+
+# 安卓工程构建产物
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/capacitor-cordova-android-plugins
+android/.idea
+*.keystore
+!android/gradlew
+!android/gradlew.bat
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradle/wrapper/gradle-wrapper.jar

@@ -1,0 +1,30 @@
+{
+  "name": "ai-chat-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "mock": "node mock-server.mjs",
+    "apk:sync": "npm run build && npx cap sync android",
+    "apk:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "dompurify": "^3.1.6",
+    "marked": "^12.0.2",
+    "vant": "^4.9.4",
+    "vue": "^3.4.31"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.4"
+  }
+}
