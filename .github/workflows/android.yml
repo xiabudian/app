@@ -50,8 +50,12 @@ jobs:
         run: |
           git config user.email "ci@local"
           git config user.name "CI"
-          git add -f build.log sync.log gradle.log 2>/dev/null || true
-          git commit -m "ci: 失败日志" || echo "无日志可提交"
+          mkdir -p ci-logs
+          cp -f build.log ci-logs/ 2>/dev/null || true
+          cp -f sync.log ci-logs/ 2>/dev/null || true
+          cp -f gradle.log ci-logs/ 2>/dev/null || true
+          git add -A ci-logs
+          git commit -m "ci: 失败日志" || echo "无日志"
           git push origin "HEAD:refs/heads/logs" || true
 
       - name: 上传 APK（在 Actions 页面下载）
