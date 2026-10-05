@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch: # 也支持在 GitHub 页面上手动触发
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -27,16 +30,29 @@ jobs:
         run: npm install
 
       - name: 构建网页
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
 
       - name: 同步到安卓工程
-        run: npx cap sync android
+        run: |
+          set -o pipefail
+          npx cap sync android --verbose 2>&1 | tee sync.log
 
       - name: 编译 Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle.log
+
+      - name: 失败时回传日志（推到 logs 分支供排查）
+        if: failure()
+        run: |
+          git config user.email "ci@local"
+          git config user.name "CI"
+          git add -f build.log sync.log gradle.log 2>/dev/null || true
+          git commit -m "ci: 失败日志" || echo "无日志可提交"
+          git push origin "HEAD:refs/heads/logs" || true
 
       - name: 上传 APK（在 Actions 页面下载）
         uses: actions/upload-artifact@v4
