@@ -37,7 +37,7 @@ jobs:
       - name: 同步到安卓工程
         run: |
           set -o pipefail
-          npx cap sync android --verbose 2>&1 | tee sync.log
+          npx cap sync android 2>&1 | tee sync.log
 
       - name: 编译 Debug APK
         run: |
