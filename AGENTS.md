@@ -49,3 +49,23 @@ npx cap sync android  # dist 同步进安卓工程（CI 会自动做）
 - 改完代码**只本地提交，不要 push**（push 触发云打包）；用户网页（localhost:5173）确认后说"打包"再推
 - 回复精简省 token；中文交流
 - 手机端问题优先想：是否切后台断连、是否安卓沙箱限制
+
+## 代码地图（二开直接定位）
+
+数据流：ChatInput → chat.js `sendMessage` → `generate` → api.js `streamChat`(SSE逐字回调) → persist。
+生图：DrawView → draw.js `generateDraw`(校验+建任务) → `runGeneration`(执行+保活+自动下载+红点) → api.js `generateImage` 按服务商分发。
+配置：settings.js `buildSettings`(启动加载+preset合并+迁移) → watch 全量写 localStorage（Key 非空优先合并）。
+
+| 要改什么 | 位置 |
+| --- | --- |
+| 服务商预设/取Key链接 | `lib/providers.js` |
+| 流式解析/SSE/错误转人话 | `lib/api.js`：`streamChat` / `describeError` / `withTimeout` |
+| ApiMart 异步任务+轮询+参考图上传 | `lib/api.js`：`apimartImage`（比例映射 `nearestApimartRatio`） |
+| 聊天发送/重试/切后台标记 | `stores/chat.js`：`sendMessage` / `generate` |
+| 生图任务队列/自动下载/红点 | `stores/draw.js`：`generateDraw` / `runGeneration` / `retryDraw` |
+| TTS/STT | `lib/voice.js` + `MessageBubble`(朗读) + `ChatInput`(麦克风) |
+| 图片本地持久化 | `lib/idb.js`（draw.js 持久化时转存） |
+| 服务商编辑弹窗字段 | `components/ProviderEditor.vue`（按 mode 分 chat/image） |
+| 气泡/样式 | `styles.css`（注释分区块）+ 各 view 的 template |
+
+新加页面：views/ 新组件 → `ui.js` 加 TAB → App.vue 挂载。
