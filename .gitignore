@@ -11,6 +11,7 @@ android/local.properties
 android/capacitor-cordova-android-plugins
 android/.idea
 *.keystore
+!android/app/debug.keystore
 !android/gradlew
 !android/gradlew.bat
 !android/gradle/wrapper/gradle-wrapper.properties
