@@ -67,6 +67,16 @@ export const PROVIDER_PRESETS = {
     imageModels: ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'],
     imageHint: 'gpt-image 系列生图模型（flare / sunburst）。若生图 Key 与聊天 Key 不同，请到编辑里单独填写「绘图 Key」。',
   },
+  apimart: {
+    label: 'ApiMart 中转站',
+    baseUrl: 'https://api.apimart.ai/v1',
+    apiKey: '',
+    models: [],
+    keyUrl: 'https://apimart.ai/keys',
+    hint: '聚合中转站。文本模型名到官网 apimart.ai/model 页查看后手动填入（如 claude / gemini / gpt 系列）；聊天与绘图的 Key 不同时分别填写。',
+    imageModels: ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'],
+    imageHint: 'gpt-image-2.5 系列：flare 出图快，sunburst 擅长精确编辑。走异步任务自动轮询（约 1~3 分钟），图生图会先自动上传参考图（官方仅收 72 小时临时链接）。',
+  },
   custom: {
     label: '自定义（任何 OpenAI 兼容服务）',
     baseUrl: '',

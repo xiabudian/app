@@ -111,11 +111,12 @@ async function retry(r) {
 </script>
 
 <template>
-  <div class="view works-view">
+  <div class="view works-view" :class="{ managing }">
     <van-nav-bar title="我的作品">
       <template #right>
         <span v-if="draw.results.length" class="nav-manage" @click="toggleManage">
-          {{ managing ? '取消' : '批量删除' }}
+          <van-icon :name="managing ? 'cross' : 'delete-o'" size="14" />
+          {{ managing ? '完成' : '管理' }}
         </span>
       </template>
     </van-nav-bar>

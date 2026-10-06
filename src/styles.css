@@ -1020,9 +1020,25 @@ body {
 }
 
 .nav-manage {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef3ff;
   color: var(--brand);
+  font-size: 13px;
   cursor: pointer;
+}
+
+.nav-manage:active {
+  background: #dfe9ff;
+}
+
+.managing .nav-manage {
+  background: var(--brand);
+  color: #fff;
 }
 
 .g-item {

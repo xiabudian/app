@@ -123,10 +123,124 @@ function extractImageUrl(j) {
   return null
 }
 
-/**
- * 文生图 / 图生图（OpenAI 兼容的 /images/generations 接口）。
- * 图生图：image 传参考图（data URL），需要用支持编辑的模型（如 Qwen-Image-Edit）。
- */
+// ============ ApiMart：异步任务式生图（提交 → 轮询 → 取图） ============
+
+// 用户选的像素尺寸 → ApiMart 最接近的宽高比（支持的比例见官方文档）
+const APIMART_RATIOS = [
+  ['1:1', 1], ['3:2', 3 / 2], ['2:3', 2 / 3], ['4:3', 4 / 3], ['3:4', 3 / 4],
+  ['5:4', 5 / 4], ['4:5', 4 / 5], ['16:9', 16 / 9], ['9:16', 9 / 16],
+  ['2:1', 2], ['1:2', 1 / 2], ['21:9', 21 / 9], ['9:21', 9 / 21],
+  ['3:1', 3], ['1:3', 1 / 3],
+]
+
+function nearestApimartRatio(size) {
+  const [w, h] = String(size).split('x').map(Number)
+  if (!w || !h) return '1:1'
+  const r = w / h
+  let best = '1:1'
+  let bestDiff = Infinity
+  for (const [name, ratio] of APIMART_RATIOS) {
+    const diff = Math.abs(Math.log(r / ratio))
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = name
+    }
+  }
+  return best
+}
+
+async function dataUrlToBlob(dataUrl) {
+  return await (await fetch(dataUrl)).blob()
+}
+
+// 把临时图片链接转成本地 data URL（官方链接 72 小时会过期），失败就用原链接
+async function urlToDataUrl(url) {
+  try {
+    const blob = await (await fetch(url)).blob()
+    return await new Promise((resolve) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result || ''))
+      fr.onerror = () => resolve('')
+      fr.readAsDataURL(blob)
+    })
+  } catch {
+    return ''
+  }
+}
+
+async function apimartImage({ baseUrl, apiKey, model, prompt, size, image }) {
+  const headers = { Authorization: `Bearer ${apiKey}` }
+  const body = { model, prompt, n: 1 }
+
+  if (image) {
+    // 图生图：ApiMart 不收 base64，参考图必须先上传成临时 URL
+    const fd = new FormData()
+    fd.append('file', await dataUrlToBlob(image), 'reference.png')
+    const upRes = await fetch(joinUrl(baseUrl, '/uploads/images'), { method: 'POST', headers, body: fd })
+    const upJson = await upRes.json().catch(() => ({}))
+    const refUrl = upJson?.data?.url || upJson?.url
+    if (!upRes.ok || !refUrl) {
+      throw new Error(upJson?.error?.message || `参考图上传失败（HTTP ${upRes.status}）`)
+    }
+    body.image_urls = [refUrl]
+  } else if (size) {
+    body.size = nearestApimartRatio(size)
+    body.resolution = '1k'
+  }
+
+  // 提交异步任务
+  const res = await fetch(joinUrl(baseUrl, '/images/generations'), {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: withTimeout(undefined, 60000),
+  })
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`
+    try {
+      const j = await res.json()
+      msg = j.error?.message || j.message || msg
+    } catch { /* ignore */ }
+    throw new Error(msg)
+  }
+  const submitted = await res.json()
+  const taskId = submitted?.data?.[0]?.task_id || submitted?.data?.task_id
+  if (!taskId) throw new Error('ApiMart 未返回任务 ID：' + JSON.stringify(submitted).slice(0, 120))
+
+  // 轮询任务状态（每 3 秒，最长 5 分钟）
+  const deadline = Date.now() + 300000
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 3000))
+    const poll = await fetch(joinUrl(baseUrl, `/tasks/${taskId}`), {
+      headers,
+      signal: withTimeout(undefined, 30000),
+    })
+    if (!poll.ok) {
+      let msg = `HTTP ${poll.status}`
+      try {
+        const j = await poll.json()
+        msg = j.error?.message || j.message || msg
+      } catch { /* ignore */ }
+      throw new Error(msg)
+    }
+    const j = await poll.json()
+    const data = j?.data || {}
+    if (data.status === 'completed') {
+      // 结果在 data.result.images[0].url[]（注意 url 是数组）
+      const urls = data.result?.images?.[0]?.url || []
+      const imgUrl = Array.isArray(urls) ? urls[0] : urls
+      if (!imgUrl) throw new Error('任务完成但未返回图片地址')
+      const local = await urlToDataUrl(imgUrl)
+      return local || imgUrl
+    }
+    if (data.status === 'failed') {
+      throw new Error(data.error?.message || j?.error?.message || 'ApiMart 生成失败')
+    }
+    // submitted / processing → 继续等
+  }
+  throw new Error('生成超时（超过 5 分钟未完成），可稍后在作品页点「重试」')
+}
+
 // 生图这类请求给个总超时，避免网络异常时任务永远挂着（180 秒）
 function withTimeout(external, timeoutMs) {
   const t = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : null
@@ -134,7 +248,16 @@ function withTimeout(external, timeoutMs) {
   return external || t || undefined
 }
 
-export async function generateImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
+/**
+ * 文生图 / 图生图统一入口：按服务商分发（ApiMart 走异步任务，其余走同步接口）。
+ * 图生图：image 传参考图（data URL），需要用支持编辑的模型。
+ */
+export async function generateImage(opts) {
+  if (opts.providerId === 'apimart') return apimartImage(opts)
+  return openAIImage(opts)
+}
+
+async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
   const body = { model, prompt, n: 1 }
   // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
   if (size && providerId !== 'xai') {
