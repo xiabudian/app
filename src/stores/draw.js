@@ -5,6 +5,7 @@ import { idbPut, idbGet, idbDel } from '../lib/idb'
 import { generateImage, describeError } from '../lib/api'
 import { settings, providerRef } from './settings'
 import { ui, TAB, appVisibility } from './ui'
+import { startKeepAlive, stopKeepAlive } from '../lib/keepalive'
 
 export const draw = reactive({
   results: loadJSON(KEYS.draws, []),
@@ -97,6 +98,7 @@ function validate() {
 // 执行一次生成并写入 item；完成后若用户在别的页面，累计红点提醒
 async function runGeneration(item, pid, conf, imageKey, { prompt, size, image }) {
   draw.generating = true
+  await startKeepAlive() // 生成期间保活：切到其他应用连接不断
   try {
     item.url = await generateImage({
       providerId: pid,
@@ -116,6 +118,7 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     }
   } finally {
     item.loading = false
+    await stopKeepAlive()
     // 记录本次请求的响应耗时（秒，保留一位小数）
     item.duration = Math.round((Date.now() - item.time) / 100) / 10
     draw.generating = draw.results.some((r) => r.loading)

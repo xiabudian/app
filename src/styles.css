@@ -580,9 +580,63 @@ body {
   border-radius: 0 14px 14px 0;
 }
 
-.clear-wrap {
-  text-align: center;
-  margin-top: 16px;
+.history-foot {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+
+.history-foot .van-button {
+  height: 34px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.history-foot.managing .van-button {
+  flex: 1;
+}
+
+.history-foot.managing .van-button--danger {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.history-foot.managing .van-button {
+  flex: 1;
+}
+
+/* 管理模式的勾选圈 */
+.conv-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #c9ced8;
+  color: #fff;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.conv-check.on {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* 设置页：卡片化分组 */

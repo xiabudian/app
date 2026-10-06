@@ -4,6 +4,7 @@ import { loadJSON, saveJSON, KEYS } from '../lib/storage'
 import { streamChat, describeError } from '../lib/api'
 import { settings, providerRef } from './settings'
 import { appVisibility } from './ui'
+import { startKeepAlive, stopKeepAlive } from '../lib/keepalive'
 
 export const chat = reactive({
   conversations: loadJSON(KEYS.conversations, []),
@@ -49,6 +50,13 @@ export function deleteConversation(id) {
   const i = chat.conversations.findIndex((c) => c.id === id)
   if (i >= 0) chat.conversations.splice(i, 1)
   if (chat.currentId === id) chat.currentId = chat.conversations[0]?.id ?? null
+  persist()
+}
+
+export function deleteConversations(ids) {
+  const set = new Set(ids)
+  chat.conversations = chat.conversations.filter((c) => !set.has(c.id))
+  if (chat.currentId && set.has(chat.currentId)) chat.currentId = chat.conversations[0]?.id ?? null
   persist()
 }
 
@@ -113,6 +121,7 @@ async function generate(conv) {
   conv.updatedAt = Date.now()
   chat.streaming = true
   chat.abortCtrl = new AbortController()
+  await startKeepAlive() // 生成期间保活：切到其他应用连接不断
 
   const conf = providerRef(settings.chatProvider)
   try {
@@ -149,6 +158,7 @@ async function generate(conv) {
     }
   } finally {
     assistant.streaming = false
+    await stopKeepAlive()
     chat.streaming = false
     chat.abortCtrl = null
     persist()
