@@ -196,11 +196,11 @@ body {
 }
 
 .avatar.assistant {
-  background: linear-gradient(135deg, #4f8cff, #7a5cff);
+  background: var(--ink);
 }
 
 .avatar.user {
-  background: linear-gradient(135deg, #ffb347, #ff7e5f);
+  background: #6b7385;
 }
 
 .msg .body {
@@ -230,7 +230,7 @@ body {
 }
 
 .msg.user .bubble {
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: var(--ink);
   color: #fff;
   border-top-right-radius: 4px;
   white-space: pre-wrap;
@@ -330,7 +330,7 @@ body {
 }
 
 .meta .act:hover {
-  color: #3b82f6;
+  color: var(--ink);
 }
 
 /* 思考过程折叠块（DeepSeek R1 等推理模型） */
@@ -401,8 +401,8 @@ body {
 }
 
 .md :not(pre) > code {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  background: #f2f4f8;
+  color: var(--ink);
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 13px;
@@ -429,14 +429,15 @@ body {
 .md blockquote {
   margin: 6px 0;
   padding: 4px 10px;
-  border-left: 3px solid #c3d0ff;
+  border-left: 3px solid #d9dfeb;
   color: #5b6472;
-  background: #f4f7ff;
+  background: #f7f8fb;
   border-radius: 0 6px 6px 0;
 }
 
 .md a {
-  color: #2563eb;
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 /* ---------- 底部输入区 ---------- */
