@@ -75,9 +75,9 @@ body {
 }
 
 .nav-plus {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
+  width: 44px;
+  height: 34px;
+  border-radius: 999px;
   background: #f2f4f8;
   color: var(--ink);
   display: flex;
