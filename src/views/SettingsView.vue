@@ -126,9 +126,15 @@ async function onClear() {
     <div class="scroll">
       <div class="set-seg-wrap">
         <div class="set-seg">
-          <div class="set-seg-item" :class="{ on: sec === 'chat' }" @click="sec = 'chat'">💬 对话</div>
-          <div class="set-seg-item" :class="{ on: sec === 'draw' }" @click="sec = 'draw'">🎨 绘图</div>
-          <div class="set-seg-item" :class="{ on: sec === 'common' }" @click="sec = 'common'">⚙️ 通用</div>
+          <div class="set-seg-item" :class="{ on: sec === 'chat' }" @click="sec = 'chat'">
+            <van-icon name="chat-o" size="15" />对话
+          </div>
+          <div class="set-seg-item" :class="{ on: sec === 'draw' }" @click="sec = 'draw'">
+            <van-icon name="photograph" size="15" />绘图
+          </div>
+          <div class="set-seg-item" :class="{ on: sec === 'common' }" @click="sec = 'common'">
+            <van-icon name="setting-o" size="15" />通用
+          </div>
         </div>
       </div>
 
@@ -143,9 +149,11 @@ async function onClear() {
               @click="settings.chatProvider = p.id"
             >
               <template #title>
-                <span>{{ p.name }}</span>
-                <span class="p-model">{{ p.model || '未设置模型' }}</span>
-                <van-icon name="edit" class="row-edit" @click.stop="openEditor(p.id)" />
+                <div class="p-title">
+                  <span class="p-name">{{ p.name }}</span>
+                  <van-icon name="edit" class="row-edit" @click.stop="openEditor(p.id)" />
+                </div>
+                <div class="p-model">{{ p.model || '未设置模型' }}</div>
               </template>
               <template #right-icon>
                 <van-radio :name="p.id" @click.stop />

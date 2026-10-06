@@ -4,7 +4,7 @@ import { loadJSON, saveJSON, KEYS, downloadImage } from '../lib/storage'
 import { idbPut, idbGet, idbDel } from '../lib/idb'
 import { generateImage, describeError } from '../lib/api'
 import { settings, providerRef } from './settings'
-import { ui, TAB } from './ui'
+import { ui, TAB, appVisibility } from './ui'
 
 export const draw = reactive({
   results: loadJSON(KEYS.draws, []),
@@ -109,6 +109,11 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     })
   } catch (e) {
     item.error = describeError(e, pid)
+    // 请求期间切过后台 → 大概率是系统冻结了连接，标记出来供回前台自动重试
+    if (/网络请求失败|超时/.test(item.error) && (!appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000)) {
+      item.bgInterrupted = true
+      item.error += '（切后台导致连接中断）'
+    }
   } finally {
     item.loading = false
     // 记录本次请求的响应耗时（秒，保留一位小数）
@@ -124,6 +129,17 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) draw.unseen++
   }
 }
+
+// 回前台时，自动重试一次因切后台中断的生图任务（只自动重试一次，避免重复扣费）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return
+  for (const r of draw.results) {
+    if (r.bgInterrupted && r.error && !r.autoRetried && !r.loading) {
+      r.autoRetried = true
+      retryDraw(r).catch(() => {})
+    }
+  }
+})
 
 export async function generateDraw({ prompt, size, image, stylePrompt }) {
   // 最多同时 3 张，防止手滑连点把额度打爆

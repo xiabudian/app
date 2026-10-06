@@ -77,14 +77,4 @@ export const PROVIDER_PRESETS = {
     imageModels: ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'],
     imageHint: 'gpt-image-2.5 系列：flare 出图快，sunburst 擅长精确编辑。走异步任务自动轮询（约 1~3 分钟），图生图会先自动上传参考图（官方仅收 72 小时临时链接）。',
   },
-  custom: {
-    label: '自定义（任何 OpenAI 兼容服务）',
-    baseUrl: '',
-    apiKey: '',
-    models: [],
-    keyUrl: '',
-    hint: '填入任意 OpenAI 兼容服务的地址、Key 和模型名即可，例如 agens-ai、中转站等。',
-    imageModels: [],
-    imageHint: '只要该服务支持 /images/generations 接口就能画图：填地址、Key 和绘图模型名。',
-  },
 }

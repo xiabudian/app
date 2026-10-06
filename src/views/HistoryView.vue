@@ -64,7 +64,7 @@ function onNew() {
       <div class="hero-logo">🕓</div>
       <div class="hero-title">还没有对话记录</div>
       <p class="hero-sub">每一次对话都会自动保存在这里<br />随时可以回来继续聊</p>
-      <van-button round type="primary" size="small" @click="onNew">开始新对话</van-button>
+      <van-button round type="primary" @click="onNew">开始新对话</van-button>
     </div>
 
     <div v-else class="list">

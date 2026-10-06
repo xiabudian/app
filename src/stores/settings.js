@@ -58,6 +58,30 @@ function buildSettings() {
     }
     if (Array.isArray(saved.userProviders)) data.userProviders = saved.userProviders
     if (typeof saved.systemPrompt === 'string') data.systemPrompt = saved.systemPrompt
+
+    // 旧版本内置了「自定义」服务商：如果用户在里面填过配置，自动迁移成一个用户自建服务商
+    const savedCustom = saved.providers?.custom
+    if (savedCustom && (savedCustom.baseUrl || savedCustom.apiKey || savedCustom.model)) {
+      const migrated = {
+        id: 'u-migrated-custom',
+        name: '自定义服务',
+        baseUrl: savedCustom.baseUrl || '',
+        apiKey: savedCustom.apiKey || '',
+        imageKey: savedCustom.imageKey || '',
+        model: savedCustom.model || '',
+        imageModel: savedCustom.imageModel || '',
+        models: savedCustom.models?.length ? savedCustom.models : savedCustom.model ? [savedCustom.model] : [],
+        imageModels: savedCustom.imageModels?.length
+          ? savedCustom.imageModels
+          : savedCustom.imageModel
+            ? [savedCustom.imageModel]
+            : [],
+        hint: '',
+        imageHint: '',
+        builtin: false,
+      }
+      if (!data.userProviders.some((u) => u.id === migrated.id)) data.userProviders.unshift(migrated)
+    }
     if (typeof saved.autoDownload === 'boolean') data.autoDownload = saved.autoDownload
     if (Array.isArray(saved.drawStyles)) {
       // 兼容旧格式（纯字符串数组）→ 迁移为 { label, prompt }

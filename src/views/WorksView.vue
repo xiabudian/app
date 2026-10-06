@@ -125,7 +125,7 @@ async function retry(r) {
       <div class="hero-logo">🎨</div>
       <div class="hero-title">还没有作品</div>
       <p class="hero-sub">生成的图片都会保存在这里<br />可以随时查看、下载或删除</p>
-      <van-button round type="primary" size="small" @click="ui.tab = TAB.DRAW">去绘图</van-button>
+      <van-button round type="primary" @click="ui.tab = TAB.DRAW">去绘图</van-button>
     </div>
 
     <div v-else class="scroll">

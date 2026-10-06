@@ -207,22 +207,35 @@ async function apimartImage({ baseUrl, apiKey, model, prompt, size, image }) {
   const taskId = submitted?.data?.[0]?.task_id || submitted?.data?.task_id
   if (!taskId) throw new Error('ApiMart 未返回任务 ID：' + JSON.stringify(submitted).slice(0, 120))
 
-  // 轮询任务状态（每 3 秒，最长 5 分钟）
+  // 轮询任务状态（每 3 秒，最长 5 分钟；网络抖动/切后台时自动重连续查）
   const deadline = Date.now() + 300000
+  let pollFails = 0
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 3000))
-    const poll = await fetch(joinUrl(baseUrl, `/tasks/${taskId}`), {
-      headers,
-      signal: withTimeout(undefined, 30000),
-    })
-    if (!poll.ok) {
-      let msg = `HTTP ${poll.status}`
-      try {
-        const j = await poll.json()
-        msg = j.error?.message || j.message || msg
-      } catch { /* ignore */ }
-      throw new Error(msg)
+    let poll
+    try {
+      poll = await fetch(joinUrl(baseUrl, `/tasks/${taskId}`), {
+        headers,
+        signal: withTimeout(undefined, 30000),
+      })
+    } catch {
+      // 任务在服务端继续跑，这里只是查状态，断线自动重连即可
+      if (++pollFails >= 5) throw new Error('任务状态查询连续失败，请检查网络后重试')
+      continue
     }
+    if (!poll.ok) {
+      if (poll.status === 401 || poll.status === 402) {
+        let msg = `HTTP ${poll.status}`
+        try {
+          const j = await poll.json()
+          msg = j.error?.message || j.message || msg
+        } catch { /* ignore */ }
+        throw new Error(msg)
+      }
+      if (++pollFails >= 5) throw new Error(`任务状态查询失败（HTTP ${poll.status}）`)
+      continue
+    }
+    pollFails = 0
     const j = await poll.json()
     const data = j?.data || {}
     if (data.status === 'completed') {

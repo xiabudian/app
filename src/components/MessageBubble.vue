@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { showToast, showImagePreview } from 'vant'
@@ -11,6 +11,27 @@ const props = defineProps({
   isLast: Boolean,
 })
 defineEmits(['regenerate'])
+
+// 流式输出时的实时计时：让「生成中」状态始终可感知，不像卡住
+const elapsed = ref(0)
+let timer = null
+watch(
+  () => props.msg.streaming,
+  (on) => {
+    if (on) {
+      const start = props.msg.time || Date.now()
+      elapsed.value = Math.max(0, Math.round((Date.now() - start) / 1000))
+      timer = setInterval(() => {
+        elapsed.value = Math.round((Date.now() - start) / 1000)
+      }, 1000)
+    } else if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  },
+  { immediate: true }
+)
+onUnmounted(() => timer && clearInterval(timer))
 
 // 模型输出大多是 Markdown，渲染成 HTML 前必须用 DOMPurify 消毒，防止注入
 const rendered = computed(() => {
@@ -56,7 +77,13 @@ async function copyText() {
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
           <span class="thinking-txt">正在思考…</span>
         </div>
-        <div v-else class="bubble md" :class="{ streaming: msg.streaming }" v-html="rendered"></div>
+        <template v-else>
+          <div class="bubble md" :class="{ streaming: msg.streaming }" v-html="rendered"></div>
+          <div v-if="msg.streaming" class="stream-meta">
+            <van-loading size="12" />
+            <span>生成中 · {{ elapsed }}s</span>
+          </div>
+        </template>
       </template>
       <div v-else class="bubble" :class="{ streaming: msg.streaming }">{{ msg.content }}</div>
 

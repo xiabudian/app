@@ -64,13 +64,7 @@ function onNew() {
           支持 DeepSeek、Grok、魔搭社区等多个模型<br />
           {{ providerRef(settings.chatProvider)?.apiKey ? '在下方输入框开始对话吧' : '先去「设置」选择服务商并填写 API Key' }}
         </p>
-        <van-button
-          v-if="!providerRef(settings.chatProvider)?.apiKey"
-          round
-          type="primary"
-          size="small"
-          @click="ui.tab = TAB.SETTINGS"
-        >
+        <van-button v-if="!providerRef(settings.chatProvider)?.apiKey" round type="primary" @click="ui.tab = TAB.SETTINGS">
           去设置
         </van-button>
       </div>

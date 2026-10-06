@@ -3,6 +3,7 @@ import { showToast } from 'vant'
 import { loadJSON, saveJSON, KEYS } from '../lib/storage'
 import { streamChat, describeError } from '../lib/api'
 import { settings, providerRef } from './settings'
+import { appVisibility } from './ui'
 
 export const chat = reactive({
   conversations: loadJSON(KEYS.conversations, []),
@@ -139,6 +140,11 @@ async function generate(conv) {
       if (!assistant.content) assistant.content = '（已停止生成）'
     } else {
       assistant.error = describeError(e, settings.chatProvider)
+      // 请求期间切过后台 → 系统会冻结连接，提示用户一键重发
+      const bgInt = !appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000
+      if (bgInt && /网络请求失败|超时/.test(assistant.error)) {
+        assistant.error += '（切后台导致连接中断，点「重新生成」可重发）'
+      }
       if (!assistant.content) assistant.content = '生成失败'
     }
   } finally {

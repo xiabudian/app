@@ -4,9 +4,11 @@
 
 /* ---------- 全局设计变量 ---------- */
 :root {
-  --brand: #4f7cff;
-  --brand-2: #7a5cff;
-  --grad: linear-gradient(135deg, #4f8cff, #7a5cff);
+  --ink: #111111;
+  --brand: #111111; /* 极简黑白主题：品牌色即墨色 */
+  --brand-2: #111111;
+  --grad: #111111; /* 原渐变位置统一替换为纯黑 */
+  --line: #e4e7ee;
   --bg: #f4f6fb;
   --card: #ffffff;
   --radius: 16px;
@@ -14,9 +16,19 @@
   --txt: #1f2329;
   --txt-2: #6b7385;
   --txt-3: #9aa3b2;
-  /* Vant 组件主题色对齐品牌色 */
-  --van-primary-color: #4f7cff;
-  --van-blue: #4f7cff;
+  /* Vant 组件主题色对齐黑白风格 */
+  --van-primary-color: #111111;
+  --van-blue: #111111;
+  --van-button-primary-background: #111111;
+  --van-button-primary-border-color: #111111;
+}
+
+/* 次要按钮：白底、黑字、浅灰边框 */
+.van-button--plain.van-button--primary,
+.van-button--plain.van-button--default {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
 }
 
 body {
@@ -66,8 +78,8 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  background: #eef3ff;
-  color: var(--brand);
+  background: #f2f4f8;
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +87,7 @@ body {
 }
 
 .nav-plus:active {
-  background: #dfe9ff;
+  background: #e8ebf2;
 }
 
 /* ---------- 底部导航（所有页面统一） ---------- */
@@ -94,7 +106,7 @@ body {
 }
 
 .van-tabbar-item--active {
-  color: var(--brand);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -104,7 +116,7 @@ body {
 }
 
 .van-tabbar-item--active .van-tabbar-item__icon {
-  background: #eef3ff;
+  background: #f2f4f8;
   padding: 3px 14px;
   border-radius: 999px;
   font-size: 20px;
@@ -125,12 +137,12 @@ body {
   width: 76px;
   height: 76px;
   border-radius: 24px;
-  background: var(--grad);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 36px;
-  box-shadow: 0 10px 24px rgba(94, 114, 255, 0.35);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   margin-bottom: 16px;
 }
 
@@ -228,7 +240,7 @@ body {
 .bubble.streaming::after {
   content: '▍';
   display: inline-block;
-  color: #3b82f6;
+  color: var(--ink);
   margin-left: 2px;
   animation: blink 1s steps(2) infinite;
 }
@@ -255,17 +267,17 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a5b4fc;
+  background: #c9ced8;
   animation: think-bounce 1.2s infinite ease-in-out;
 }
 
 .thinking .dot:nth-child(2) {
-  background: #818cf8;
+  background: #9aa3b2;
   animation-delay: 0.15s;
 }
 
 .thinking .dot:nth-child(3) {
-  background: #6366f1;
+  background: #6b7385;
   animation-delay: 0.3s;
 }
 
@@ -273,6 +285,16 @@ body {
   font-size: 13px;
   color: var(--txt-3);
   margin-left: 4px;
+}
+
+/* 流式输出中的实时状态：计时器让生成过程始终可感知 */
+.stream-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--txt-3);
+  margin-top: 5px;
 }
 
 @keyframes think-bounce {
@@ -459,14 +481,14 @@ body {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: var(--grad);
+  background: var(--ink);
   color: #fff;
   font-size: 19px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(94, 114, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transition: all 0.15s;
 }
 
@@ -516,8 +538,8 @@ body {
 }
 
 .conv-card.active {
-  border-color: #c9d9ff;
-  background: #f8faff;
+  border-color: #d9dfeb;
+  background: #fafbfd;
 }
 
 .conv-top {
@@ -672,7 +694,7 @@ body {
 
 .seg-item.on {
   background: #fff;
-  color: #3b6ef5;
+  color: var(--ink);
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(31, 41, 70, 0.1);
 }
@@ -797,17 +819,17 @@ body {
 }
 
 .picker-item.on {
-  color: #3b6ef5;
+  color: var(--ink);
   font-weight: 600;
-  background: #f0f5ff;
+  background: #f5f6f8;
 }
 
-/* 渐变大按钮 */
+/* 主按钮：纯黑、大圆角、柔和阴影 */
 .gen-btn {
   margin: 4px 16px 16px;
   height: 48px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #4f8cff, #7a5cff);
+  border-radius: 16px;
+  background: var(--ink);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -815,7 +837,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 6px 16px rgba(94, 114, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   cursor: pointer;
   user-select: none;
 }
@@ -1026,14 +1048,14 @@ body {
   height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  background: #eef3ff;
+  background: #f2f4f8;
   color: var(--brand);
   font-size: 13px;
   cursor: pointer;
 }
 
 .nav-manage:active {
-  background: #dfe9ff;
+  background: #e8ebf2;
 }
 
 .managing .nav-manage {
@@ -1204,7 +1226,7 @@ body {
 
 .set-seg-item.on {
   background: #fff;
-  color: #3b6ef5;
+  color: var(--ink);
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(31, 41, 70, 0.1);
 }
@@ -1224,7 +1246,7 @@ body {
 }
 
 .row-edit:active {
-  color: #1989fa;
+  color: var(--ink);
 }
 
 .add-wrap {
