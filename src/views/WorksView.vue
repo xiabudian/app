@@ -3,6 +3,7 @@ import { computed, ref, watch, onUnmounted } from 'vue'
 import { draw, removeWork, removeWorks, retryDraw } from '../stores/draw'
 import { ui, TAB } from '../stores/ui'
 import { showImagePreview, showConfirmDialog, showToast } from 'vant'
+import { saveImage } from '../lib/storage'
 
 const managing = ref(false) // 批量管理模式
 const selectedIds = ref([])
@@ -108,6 +109,18 @@ async function batchDelete() {
 async function retry(r) {
   await retryDraw(r)
 }
+
+async function saveWork(r) {
+  if (!r.url) return
+  const ext = r.url.startsWith('data:image/svg') ? 'svg' : 'png'
+  const name = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}.${ext}`
+  try {
+    const where = await saveImage(r.url, name)
+    showToast(where === 'app' ? '已存到应用私有目录（图库不可见）' : '已下载到「下载」文件夹')
+  } catch {
+    showToast('保存失败')
+  }
+}
 </script>
 
 <template>
@@ -150,10 +163,10 @@ async function retry(r) {
             <button class="g-retry" @click.stop="retry(r)">↻ 重试</button>
           </div>
           <div v-else class="g-thumb">
-            <van-image :src="r.url" fit="cover" width="100%" height="100%" @click="onThumbClick(r)" />
+            <van-image :src="r.url" fit="cover" width="100%" height="100%" @click="showImagePreview([r.url])" />
             <template v-if="!managing">
               <span class="g-del" @click.stop="del(r.id)">✕</span>
-              <a class="g-dl" :href="r.url" download target="_blank">下载</a>
+              <button class="g-dl" @click.stop="saveWork(r)">下载</button>
             </template>
             <span v-if="r.duration != null" class="g-dur">{{ fmtDur(r.duration) }}</span>
           </div>
@@ -201,9 +214,15 @@ async function retry(r) {
         </div>
         <div class="d-btns">
           <van-button size="small" round plain type="primary" @click="copyPrompt">复制提示词</van-button>
-          <a v-if="detailItem.url && !detailItem.error" class="d-dl" :href="detailItem.url" download target="_blank">
-            <van-button size="small" round type="primary">下载图片</van-button>
-          </a>
+          <van-button
+            v-if="detailItem.url && !detailItem.error"
+            size="small"
+            round
+            type="primary"
+            @click="saveWork(detailItem)"
+          >
+            下载图片
+          </van-button>
           <van-button size="small" round plain type="danger" @click="del(detailItem.id)">删除</van-button>
         </div>
       </div>

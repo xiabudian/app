@@ -1070,13 +1070,7 @@ body {
   flex: 1;
 }
 
-.d-dl {
-  flex: 1;
-}
-
-.d-dl .van-button {
-  width: 100%;
-}
+.d-dl { display: contents; } 
 
 .works-empty {
   margin: 0 16px;

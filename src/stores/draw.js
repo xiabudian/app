@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { showToast } from 'vant'
-import { loadJSON, saveJSON, KEYS, downloadImage } from '../lib/storage'
+import { loadJSON, saveJSON, KEYS, downloadImage, saveImage } from '../lib/storage'
 import { idbPut, idbGet, idbDel } from '../lib/idb'
 import { generateImage, describeError } from '../lib/api'
 import { settings, providerRef } from './settings'
@@ -123,11 +123,17 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     item.duration = Math.round((Date.now() - item.time) / 100) / 10
     draw.generating = draw.results.some((r) => r.loading)
     persistDraws()
-    // 开了自动下载：成功后直接存到浏览器的「下载」文件夹
+    // 开了自动下载：成功后直接保存（APK 存应用私有目录，图库不可见）
     if (!item.error && item.url && settings.autoDownload) {
       const ext = item.url.startsWith('data:image/svg') ? 'svg' : 'png'
       const name = `AI绘图_${(item.userPrompt || 'image').slice(0, 12)}_${item.id.slice(0, 6)}.${ext}`
-      downloadImage(item.url, name).catch(() => {})
+      saveImage(item.url, name)
+        .then((where) => {
+          if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) {
+            showToast(where === 'app' ? '已存到应用目录（图库不可见）' : '已下载到「下载」文件夹')
+          }
+        })
+        .catch(() => {})
     }
     if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) draw.unseen++
   }
