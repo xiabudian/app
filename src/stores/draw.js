@@ -113,8 +113,7 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     item.error = describeError(e, pid)
     // 请求期间切过后台 → 大概率是系统冻结了连接，标记出来供回前台自动重试
     if (/网络请求失败|超时/.test(item.error) && (!appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000)) {
-      item.bgInterrupted = true
-      item.error += '（切后台导致连接中断）'
+      item.error += '（切后台导致连接中断，点「重试」重新生成）'
     }
   } finally {
     item.loading = false
@@ -138,17 +137,6 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) draw.unseen++
   }
 }
-
-// 回前台时，自动重试一次因切后台中断的生图任务（只自动重试一次，避免重复扣费）
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return
-  for (const r of draw.results) {
-    if (r.bgInterrupted && r.error && !r.autoRetried && !r.loading) {
-      r.autoRetried = true
-      retryDraw(r).catch(() => {})
-    }
-  }
-})
 
 export async function generateDraw({ prompt, size, image, stylePrompt }) {
   // 最多同时 3 张，防止手滑连点把额度打爆

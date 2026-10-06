@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, watch, onUnmounted } from 'vue'
+import Viewer from 'viewerjs'
+import 'viewerjs/dist/viewer.css'
 import { draw, removeWork, removeWorks, retryDraw } from '../stores/draw'
 import { ui, TAB } from '../stores/ui'
 import { showImagePreview, showConfirmDialog, showToast } from 'vant'
@@ -90,9 +92,36 @@ function toggleAll() {
   selectedIds.value = allSelected.value ? [] : draw.results.map((r) => r.id)
 }
 
-function onThumbClick(r) {
-  if (managing.value) toggleSelect(r.id)
-  else showImagePreview([r.url])
+function onThumbClick(e, r) {
+  if (managing.value) {
+    toggleSelect(r.id)
+    return
+  }
+  // 局部放大查看：滚轮/双指缩放 + 拖动平移
+  const thumb = e.currentTarget.closest('.g-thumb')
+  if (!thumb) return
+  const viewer = new Viewer(thumb, {
+    navbar: false,
+    title: [1, () => (r.userPrompt || r.prompt || '').slice(0, 60)],
+    toolbar: {
+      zoomIn: 1,
+      zoomOut: 1,
+      oneToOne: 1,
+      reset: 1,
+      prev: 0,
+      play: 0,
+      next: 0,
+      rotateLeft: 0,
+      rotateRight: 0,
+      flipHorizontal: 0,
+      flipVertical: 0,
+    },
+    backdrop: true,
+    hidden() {
+      viewer.destroy()
+    },
+  })
+  viewer.show()
 }
 
 async function del(id) {
@@ -183,7 +212,7 @@ async function saveWork(r) {
             <button class="g-retry" @click.stop="retry(r)">↻ 重试</button>
           </div>
           <div v-else class="g-thumb">
-            <van-image :src="r.url" fit="cover" width="100%" height="100%" @click="showImagePreview([r.url])" />
+            <van-image :src="r.url" fit="cover" width="100%" height="100%" @click="onThumbClick($event, r)" />
             <template v-if="!managing">
               <span class="g-del" @click.stop="del(r.id)">✕</span>
               <button class="g-dl" @click.stop="saveWork(r)">下载</button>
