@@ -29,10 +29,26 @@ jobs:
       - name: 安装依赖
         run: npm install
 
+      - name: 生成版本号（提交次数 + 哈希）
+        id: ver
+        run: |
+          echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "count=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: 构建网页
         run: |
           set -o pipefail
           npm run build 2>&1 | tee build.log
+
+      - name: 写入版本标记（App 设置页显示用）
+        run: printf '{"commit":"%s","build":%s}\n' "${{ steps.ver.outputs.short }}" "${{ github.run_number }}" > dist/version.json
+
+      - name: 设置 APK 版本号
+        run: |
+          cd android
+          sed -i "s/versionCode [0-9]*/versionCode ${{ steps.ver.outputs.count }}/" app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"1.0.${{ steps.ver.outputs.count }}-${{ steps.ver.outputs.short }}\"/" app/build.gradle
+          grep -n "versionCode\|versionName" app/build.gradle
 
       - name: 同步到安卓工程
         run: |
@@ -62,6 +78,6 @@ jobs:
       - name: 上传 APK（在 Actions 页面下载）
         uses: actions/upload-artifact@v4
         with:
-          name: AI聊天助手-debug-apk
+          name: AI聊天助手-${{ steps.ver.outputs.short }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
