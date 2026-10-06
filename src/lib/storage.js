@@ -70,10 +70,14 @@ export async function saveImage(url, filename) {
       await Filesystem.writeFile({
         path: `AIChat/${filename}`,
         data: base64,
-        directory: Directory.Data, // 应用私有目录：图库不可见
+        directory: Directory.Documents, // 公共 Documents：文件管理可见
         recursive: true,
       })
-      return 'app' // 已存到应用私有目录
+      // 写 .nomedia：图库不检索这个文件夹，但文件管理器能看到
+      try {
+        await Filesystem.writeFile({ path: 'AIChat/.nomedia', data: '1', directory: Directory.Documents, recursive: true })
+      } catch { /* ignore */ }
+      return 'app' // 已存到 Documents/AIChat/
     }
   } catch (e) {
     console.warn('保存到应用目录失败，改用浏览器下载', e)

@@ -4,9 +4,42 @@ import { settings, allProviders, providerRef, removeUserProvider } from '../stor
 import { clearAll } from '../stores/chat'
 import { showToast, showConfirmDialog } from 'vant'
 import { downloadImage } from '../lib/storage'
+import { buildBackup, applyBackup, saveBackupFile } from '../lib/backup'
 import ProviderEditor from '../components/ProviderEditor.vue'
 
 const importInput = ref(null)
+const restoreInput = ref(null)
+
+// 导出全部数据：配置 + 作品（含图片与提示词）
+async function exportAll() {
+  const json = JSON.stringify(await buildBackup(), null, 2)
+  const name = `ai-chat全量备份_${new Date().toISOString().slice(0, 10)}.json`
+  const where = await saveBackupFile(json, name)
+  showToast(where === 'app' ? '已保存到 文件管理/Documents/AIChat/backup/' : '已下载备份文件')
+}
+
+function onRestoreFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async () => {
+    try {
+      const data = JSON.parse(reader.result)
+      if (!data.works && !data.settings) throw new Error('不是有效的备份文件')
+      try {
+        await showConfirmDialog({ title: '恢复备份', message: `将恢复 ${data.works?.length || 0} 个作品与全部配置，覆盖现有内容，继续？` })
+      } catch {
+        return
+      }
+      applyBackup(data)
+      showToast('备份已恢复')
+    } catch (err) {
+      showToast('恢复失败：' + (err?.message || '文件无法解析'))
+    }
+  }
+  reader.readAsText(file)
+}
 
 // 导出全部配置（含 Key）为 JSON 文件
 function exportConfig() {
@@ -207,15 +240,23 @@ async function onClear() {
           />
         </van-cell-group>
 
-        <van-cell-group inset title="保存与备份">
+        <van-cell-group inset title="语音（跟随当前聊天服务商的地址与 Key）">
+        <van-field v-model="settings.ttsModel" label="合成模型" placeholder="tts-1 / minimax-speech 等" />
+        <van-field v-model="settings.sttModel" label="识别模型" placeholder="whisper-1 等" />
+      </van-cell-group>
+
+      <van-cell-group inset title="保存与备份">
         <van-cell center title="生成后自动下载图片" label="保存到浏览器的「下载」文件夹；下载位置可在浏览器设置中修改">
           <template #right-icon>
             <van-switch v-model="settings.autoDownload" size="22" />
           </template>
         </van-cell>
+        <van-cell title="导出全部数据（作品+提示词+配置）" is-link @click="exportAll" />
+        <van-cell title="恢复全量备份" is-link @click="restoreInput.click()" />
         <van-cell title="导出配置（含 API Key）" is-link @click="exportConfig" />
         <van-cell title="导入配置" is-link @click="importInput.click()" />
         <input ref="importInput" type="file" accept=".json,application/json" style="display: none" @change="onImportFile" />
+        <input ref="restoreInput" type="file" accept=".json,application/json" style="display: none" @change="onRestoreFile" />
       </van-cell-group>
 
       <van-cell-group inset title="绘图选项（在绘图页用下拉框选择）">

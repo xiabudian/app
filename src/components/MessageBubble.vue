@@ -79,6 +79,14 @@ async function copyText() {
         </div>
         <template v-else>
           <div class="bubble md" :class="{ streaming: msg.streaming }" v-html="rendered"></div>
+          <button
+            v-if="!msg.streaming && msg.content"
+            class="b-copy"
+            title="复制全文"
+            @click="copyText"
+          >
+            ⧉ 复制
+          </button>
           <div v-if="msg.streaming" class="stream-meta">
             <van-loading size="12" />
             <span>生成中 · {{ elapsed }}s</span>

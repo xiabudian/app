@@ -67,7 +67,11 @@ function onOversize() {
   showToast('参考图不能超过 10MB')
 }
 
+let lastGenAt = 0 // 防抖：1.2 秒内重复点击只生效一次
 async function onGenerate() {
+  const now = Date.now()
+  if (now - lastGenAt < 1200) return
+  lastGenAt = now
   if (mode.value === 'image' && !refFiles.value.length) {
     showToast('请先上传参考图')
     return
