@@ -42,7 +42,7 @@ npx cap sync android  # dist 同步进安卓工程（CI 会自动做）
 - **GitHub API 匿名限流（60 次/小时）**：查云构建状态用 `git fetch` logs 分支（构建结果写在提交信息里），不要用 API
 - **用户网络走代理 127.0.0.1:7897**：git push 超时加 `-c http.proxy=http://127.0.0.1:7897 -c https.proxy=...`
 - **Capacitor CLI 8 要求 Node ≥22**；`cap sync` 不支持把 `--verbose` 放在平台名后面
-- **安卓 15 强制全屏**：状态栏/手势条遮挡已用 `adjustMarginsForEdgeToEdge: "force"` + CSS `env(safe-area-inset-top)` 解决，别动
+- **安卓 15 强制全屏（状态栏/手势条遮挡）**：由内置 SystemBars 插件处理，配置 `plugins.SystemBars.insetsHandling`：`css`（默认，要求手机 WebView ≥140）/ `native`（原生加边距，不依赖版本，当前采用）/ `disable`。不存在 `adjustMarginsForEdgeToEdge` 这个配置（写了会被静默忽略）
 
 ## 用户偏好（重要）
 
