@@ -270,30 +270,48 @@ export async function generateImage(opts) {
   return openAIImage(opts)
 }
 
-async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
-  const body = { model, prompt, n: 1 }
-  // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
-  if (size && providerId !== 'xai') {
-    let s = size
-    if (/^gpt-image/i.test(model)) {
-      // gpt-image 系列只接受 1024x1024 / 1536x1024 / 1024x1536 三种尺寸，按用户选的比例就近映射
-      const [w, h] = size.split('x').map(Number)
-      s = w === h ? '1024x1024' : w > h ? '1536x1024' : '1024x1536'
-    }
-    if (providerId === 'siliconflow') body.image_size = s
-    else body.size = s
-  }
-  if (image && providerId !== 'xai') body.image = image
+// gpt-image 系列只接受 1024x1024 / 1536x1024 / 1024x1536 三种尺寸，按用户选的比例就近映射
+function gptImageSize(size) {
+  const [w, h] = String(size).split('x').map(Number)
+  if (!w || !h) return null
+  return w === h ? '1024x1024' : w > h ? '1536x1024' : '1024x1536'
+}
 
-  const res = await fetch(joinUrl(baseUrl, '/images/generations'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-    signal: withTimeout(signal, 180000),
-  })
+async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
+  const auth = { Authorization: `Bearer ${apiKey}` }
+  let res
+
+  if (image) {
+    // 图生图（编辑）：OpenAI 标准走 /v1/images/edits，multipart 表单上传参考图
+    const fd = new FormData()
+    fd.append('model', model)
+    fd.append('prompt', prompt)
+    fd.append('image', await dataUrlToBlob(image), 'reference.png')
+    if (size && providerId !== 'xai') {
+      const s = /^gpt-image/i.test(model) ? gptImageSize(size) : size
+      if (s) fd.append('size', s)
+    }
+    res = await fetch(joinUrl(baseUrl, '/images/edits'), {
+      method: 'POST',
+      headers: auth,
+      body: fd,
+      signal,
+    })
+  } else {
+    const body = { model, prompt, n: 1 }
+    // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
+    if (size && providerId !== 'xai') {
+      const s = /^gpt-image/i.test(model) ? gptImageSize(size) : size
+      if (providerId === 'siliconflow') body.image_size = s
+      else body.size = s
+    }
+    res = await fetch(joinUrl(baseUrl, '/images/generations'), {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    })
+  }
 
   if (!res.ok) {
     let msg = `HTTP ${res.status}`

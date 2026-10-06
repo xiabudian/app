@@ -110,11 +110,12 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
       image,
     })
   } catch (e) {
+    const provName = conf.name || pid
     if (e?.name === 'AbortError') {
       // 绘图页没有手动停止按钮：中断只可能是切后台/刷新导致连接被掐断
-      item.error = '生成被中断（切后台或刷新页面导致），点「重试」重新生成'
+      item.error = `【${provName}】生成被中断（切后台或刷新页面导致），点「重试」重新生成`
     } else {
-      item.error = describeError(e, pid)
+      item.error = `【${provName}】` + describeError(e, pid)
       if (/网络请求失败|超时/.test(item.error) && (!appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000)) {
         item.error += '（切后台导致连接中断，点「重试」重新生成）'
       }
