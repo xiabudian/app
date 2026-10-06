@@ -1,5 +1,5 @@
 // 核心网络层：调用 OpenAI 兼容接口，逐字读取流式响应
-function joinUrl(base, path) {
+export function joinUrl(base, path) {
   const trimmed = (base || '').replace(/\/+$/, '')
   if (trimmed.endsWith(path)) return trimmed // 用户直接填了完整接口地址的情况
   return trimmed + path

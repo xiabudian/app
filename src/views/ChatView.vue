@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
+import { showToast } from 'vant'
 import { chat, currentConv, newConversation, sendMessage, regenerate, stopStreaming } from '../stores/chat'
 import { settings, providerRef } from '../stores/settings'
 import { ui, TAB } from '../stores/ui'
@@ -7,6 +8,7 @@ import MessageBubble from '../components/MessageBubble.vue'
 import ChatInput from '../components/ChatInput.vue'
 
 const listRef = ref(null)
+const heroPulse = ref(false) // 空对话点「+」时的脉冲反馈
 const conv = computed(() => currentConv())
 
 function scrollBottom() {
@@ -34,6 +36,14 @@ async function onSend({ text, images }) {
 }
 
 function onNew() {
+  // 当前已经是空对话时，给出可感知的反馈（而不是默默新建一个一模一样的）
+  const c = conv.value
+  if (c && !c.messages.length) {
+    showToast('当前已经是新对话了')
+    heroPulse.value = true
+    setTimeout(() => (heroPulse.value = false), 600)
+    return
+  }
   newConversation()
   scrollBottom()
 }
@@ -57,12 +67,12 @@ function onNew() {
           @regenerate="regenerate(conv)"
         />
       </template>
-      <div v-else class="hero-empty">
+      <div v-else class="hero-empty" :class="{ pulse: heroPulse }">
         <div class="hero-logo">🤖</div>
-        <div class="hero-title">AI 聊天助手</div>
+        <div class="hero-title">今天，也有人在等你</div>
         <p class="hero-sub">
-          支持 DeepSeek、Grok、魔搭社区等多个模型<br />
-          {{ providerRef(settings.chatProvider)?.apiKey ? '在下方输入框开始对话吧' : '先去「设置」选择服务商并填写 API Key' }}
+          这里是你的情绪空间<br />
+          温柔陪伴，理解你的一切
         </p>
         <van-button v-if="!providerRef(settings.chatProvider)?.apiKey" round type="primary" @click="ui.tab = TAB.SETTINGS">
           去设置

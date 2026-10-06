@@ -31,6 +31,8 @@ function buildSettings() {
     imageProvider: 'demo',
     systemPrompt: '',
     autoDownload: false, // 生成成功后自动下载图片到「下载」文件夹
+    ttsModel: 'tts-1', // 语音合成模型
+    sttModel: 'whisper-1', // 语音识别模型
     providers,
     userProviders: [],
     // 绘图页下拉框的选项，可在「设置 → 通用」里自定义
@@ -83,6 +85,8 @@ function buildSettings() {
       if (!data.userProviders.some((u) => u.id === migrated.id)) data.userProviders.unshift(migrated)
     }
     if (typeof saved.autoDownload === 'boolean') data.autoDownload = saved.autoDownload
+    if (typeof saved.ttsModel === 'string') data.ttsModel = saved.ttsModel
+    if (typeof saved.sttModel === 'string') data.sttModel = saved.sttModel
     if (Array.isArray(saved.drawStyles)) {
       // 兼容旧格式（纯字符串数组）→ 迁移为 { label, prompt }
       data.drawStyles = saved.drawStyles.map((s) =>

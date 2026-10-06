@@ -7,6 +7,7 @@ import { testConnection, describeError } from '../lib/api'
 const props = defineProps({
   show: Boolean,
   providerId: String, // null 表示新增
+  mode: { type: String, default: 'chat' }, // chat=只编辑文本相关 / image=只编辑绘图相关
 })
 const emit = defineEmits(['update:show'])
 
@@ -53,23 +54,25 @@ function onSave() {
   if (!draft.baseUrl.trim()) return showToast('请填写服务地址')
   if (!isBuiltin.value && !draft.name.trim()) return showToast('请填写服务商名称')
 
-  const patch = {
-    baseUrl: draft.baseUrl.trim(),
-    apiKey: draft.apiKey.trim(),
-    imageKey: draft.imageKey.trim(),
-    model: draft.model,
-    imageModel: draft.imageModel,
-    models: parseList(draft.modelsText),
-    imageModels: parseList(draft.imageModelsText),
-  }
-
   let target
   if (props.providerId) {
     target = providerRef(props.providerId)
-    Object.assign(target, patch)
+    target.baseUrl = draft.baseUrl.trim()
   } else {
     target = addUserProvider()
-    Object.assign(target, patch, { name: draft.name.trim() })
+    target.name = draft.name.trim()
+    target.baseUrl = draft.baseUrl.trim()
+  }
+
+  // 按当前编辑场景只写入对应字段：聊天场景不碰绘图配置，反之亦然
+  if (props.mode === 'chat') {
+    target.apiKey = draft.apiKey.trim()
+    target.model = draft.model
+    target.models = parseList(draft.modelsText)
+  } else {
+    target.imageKey = draft.imageKey.trim()
+    target.imageModel = draft.imageModel
+    target.imageModels = parseList(draft.imageModelsText)
   }
   // 没选默认模型时，自动用列表第一个
   if (!target.model && target.models.length) target.model = target.models[0]
@@ -114,70 +117,76 @@ async function onTest() {
     <div class="editor-body">
       <van-field v-model="draft.name" label="名称" placeholder="例如：我的中转站" :disabled="isBuiltin" clearable />
       <van-field v-model="draft.baseUrl" label="服务地址" placeholder="https://…（一般以 /v1 结尾）" clearable />
-      <van-field
-        v-model="draft.apiKey"
-        :type="showKey ? 'text' : 'password'"
-        label="API Key"
-        placeholder="聊天用 Key，sk-…"
-        clearable
-      >
-        <template #right-icon>
-          <van-icon :name="showKey ? 'eye-o' : 'closed-eye'" @click="showKey = !showKey" />
-        </template>
-      </van-field>
-      <van-field
-        v-model="draft.imageKey"
-        :type="showKey ? 'text' : 'password'"
-        label="绘图 Key"
-        placeholder="生图用 Key，留空则沿用上面的 Key"
-        clearable
-      >
-        <template #right-icon>
-          <van-icon :name="showKey ? 'eye-o' : 'closed-eye'" @click="showKey = !showKey" />
-        </template>
-      </van-field>
 
-      <van-field
-        v-model="draft.modelsText"
-        label="聊天模型"
-        placeholder="多个模型用逗号分隔，如：gpt-4o, gpt-4o-mini"
-      />
-      <div v-if="parseList(draft.modelsText).length" class="editor-tip">
-        点标签设为默认聊天模型（当前：{{ draft.model || '未设置' }}）
-      </div>
-      <div v-if="parseList(draft.modelsText).length" class="model-tags">
-        <van-tag
-          v-for="m in parseList(draft.modelsText)"
-          :key="m"
-          :type="draft.model === m ? 'primary' : 'default'"
-          size="medium"
-          class="mt"
-          @click="draft.model = m"
+      <template v-if="props.mode === 'chat'">
+        <van-field
+          v-model="draft.apiKey"
+          :type="showKey ? 'text' : 'password'"
+          label="API Key"
+          placeholder="聊天用 Key，sk-…"
+          clearable
         >
-          {{ m }}
-        </van-tag>
-      </div>
+          <template #right-icon>
+            <van-icon :name="showKey ? 'eye-o' : 'closed-eye'" @click="showKey = !showKey" />
+          </template>
+        </van-field>
 
-      <van-field
-        v-model="draft.imageModelsText"
-        label="绘图模型"
-        placeholder="多个模型用逗号分隔，不需要绘图可留空"
-      />
-      <div v-if="parseList(draft.imageModelsText).length" class="editor-tip">
-        点标签设为默认绘图模型（当前：{{ draft.imageModel || '未设置' }}）
-      </div>
-      <div v-if="parseList(draft.imageModelsText).length" class="model-tags">
-        <van-tag
-          v-for="m in parseList(draft.imageModelsText)"
-          :key="m"
-          :type="draft.imageModel === m ? 'primary' : 'default'"
-          size="medium"
-          class="mt"
-          @click="draft.imageModel = m"
+        <van-field
+          v-model="draft.modelsText"
+          label="聊天模型"
+          placeholder="多个模型用逗号分隔，如：gpt-4o, gpt-4o-mini"
+        />
+        <div v-if="parseList(draft.modelsText).length" class="editor-tip">
+          点标签设为默认聊天模型（当前：{{ draft.model || '未设置' }}）
+        </div>
+        <div v-if="parseList(draft.modelsText).length" class="model-tags">
+          <van-tag
+            v-for="m in parseList(draft.modelsText)"
+            :key="m"
+            :type="draft.model === m ? 'primary' : 'default'"
+            size="medium"
+            class="mt"
+            @click="draft.model = m"
+          >
+            {{ m }}
+          </van-tag>
+        </div>
+      </template>
+
+      <template v-else>
+        <van-field
+          v-model="draft.imageKey"
+          :type="showKey ? 'text' : 'password'"
+          label="绘图 Key"
+          placeholder="生图用 Key，留空则用聊天 Key"
+          clearable
         >
-          {{ m }}
-        </van-tag>
-      </div>
+          <template #right-icon>
+            <van-icon :name="showKey ? 'eye-o' : 'closed-eye'" @click="showKey = !showKey" />
+          </template>
+        </van-field>
+
+        <van-field
+          v-model="draft.imageModelsText"
+          label="绘图模型"
+          placeholder="多个模型用逗号分隔，如：gpt-image-2.5-flare"
+        />
+        <div v-if="parseList(draft.imageModelsText).length" class="editor-tip">
+          点标签设为默认绘图模型（当前：{{ draft.imageModel || '未设置' }}）
+        </div>
+        <div v-if="parseList(draft.imageModelsText).length" class="model-tags">
+          <van-tag
+            v-for="m in parseList(draft.imageModelsText)"
+            :key="m"
+            :type="draft.imageModel === m ? 'primary' : 'default'"
+            size="medium"
+            class="mt"
+            @click="draft.imageModel = m"
+          >
+            {{ m }}
+          </van-tag>
+        </div>
+      </template>
 
       <div class="editor-btns">
         <van-button round plain type="primary" :loading="testing" @click="onTest">测试连接</van-button>

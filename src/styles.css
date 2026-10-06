@@ -164,6 +164,23 @@ body {
   padding: 0 22px;
 }
 
+/* 空对话点「+」：Hero 轻微弹一下作为反馈 */
+.hero-empty.pulse .hero-logo {
+  animation: hero-pop 0.6s ease;
+}
+
+@keyframes hero-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12) rotate(-4deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* ---------- 对话页 ---------- */
 .msg-list {
   flex: 1;
