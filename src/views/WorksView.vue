@@ -11,6 +11,20 @@ const selectedIds = ref([])
 const detailShow = ref(false)
 const detailItem = ref(null)
 
+// 提示词搜索 + 分页加载（作品多了不用一直划）
+const q = ref('')
+const visibleCount = ref(12)
+const filtered = computed(() => {
+  const kw = q.value.trim().toLowerCase()
+  if (!kw) return draw.results
+  return draw.results.filter((r) => (r.userPrompt || r.prompt || '').toLowerCase().includes(kw))
+})
+const visibleList = computed(() => filtered.value.slice(0, visibleCount.value))
+const hasMore = computed(() => filtered.value.length > visibleCount.value)
+watch(q, () => {
+  visibleCount.value = 12
+})
+
 const allSelected = computed(() => draw.results.length > 0 && selectedIds.value.length === draw.results.length)
 
 // 进行中的任务列表 + 实时计时
@@ -152,8 +166,14 @@ async function saveWork(r) {
         </div>
       </div>
 
+      <div v-if="draw.results.length > 6" class="works-search">
+        <van-search v-model="q" placeholder="搜索提示词" />
+      </div>
+
+      <div v-if="!filtered.length" class="works-none">没有匹配的作品</div>
+
       <div class="gallery">
-        <div v-for="r in draw.results" :key="r.id" class="g-item">
+        <div v-for="r in visibleList" :key="r.id" class="g-item">
           <div v-if="r.loading || (r.idb && !r.url)" class="g-loading">
             <van-loading size="22" />
             <span>{{ r.loading ? `生成中… ${elapsed(r)}s` : '读取中…' }}</span>
@@ -182,6 +202,12 @@ async function saveWork(r) {
             {{ r.userPrompt || r.prompt }}
           </div>
         </div>
+      </div>
+
+      <div v-if="hasMore" class="more-wrap">
+        <van-button size="small" plain round @click="visibleCount += 12">
+          加载更多（还有 {{ filtered.length - visibleCount }} 张）
+        </van-button>
       </div>
     </div>
 

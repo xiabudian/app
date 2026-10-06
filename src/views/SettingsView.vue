@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { settings, allProviders } from '../stores/settings'
+import { settings, allProviders, providerRef, removeUserProvider } from '../stores/settings'
 import { clearAll } from '../stores/chat'
 import { showToast, showConfirmDialog } from 'vant'
 import { downloadImage } from '../lib/storage'
@@ -63,6 +63,32 @@ const editingId = ref(null) // null = 新增
 
 const chatProviders = computed(() => allProviders())
 const drawProviders = computed(() => allProviders().filter((p) => p.imageModels?.length))
+
+// 服务商选择：底部弹窗挑选（服务商多也不用长页面滚动）
+const provPicker = ref('') // 'chat' | 'draw' | ''
+const provPickOptions = computed(() => (provPicker.value === 'chat' ? chatProviders.value : drawProviders.value))
+const provPickCurrent = computed(() => (provPicker.value === 'chat' ? settings.chatProvider : settings.imageProvider))
+const chatProvName = computed(() => providerRef(settings.chatProvider)?.name || '未选择')
+const chatProvModel = computed(() => providerRef(settings.chatProvider)?.model || '未设置模型')
+const drawProvName = computed(() => providerRef(settings.imageProvider)?.name || '未选择')
+const drawProvModel = computed(() => providerRef(settings.imageProvider)?.imageModel || '未设置绘图模型')
+
+function chooseProv(id) {
+  if (provPicker.value === 'chat') settings.chatProvider = id
+  else settings.imageProvider = id
+  provPicker.value = ''
+}
+
+async function delProv(id) {
+  const p = providerRef(id)
+  try {
+    await showConfirmDialog({ title: '删除服务商', message: `确定删除「${p?.name || '该服务商'}」？其 Key 与模型配置会一并删除。` })
+  } catch {
+    return
+  }
+  removeUserProvider(id)
+  showToast('已删除')
+}
 
 // 绘图选项：设置里存数组，这里用文本框编辑
 // 风格一行一个「名称=提示词」（提示词里可以有逗号）；比例逗号分隔「标签=宽x高」
@@ -140,26 +166,9 @@ async function onClear() {
 
       <!-- 对话：选默认聊天服务商 -->
       <template v-if="sec === 'chat'">
-        <van-cell-group inset title="对话用服务商（默认用哪个聊天）">
-          <van-radio-group v-model="settings.chatProvider">
-            <van-cell
-              v-for="p in chatProviders"
-              :key="p.id"
-              clickable
-              @click="settings.chatProvider = p.id"
-            >
-              <template #title>
-                <div class="p-title">
-                  <span class="p-name">{{ p.name }}</span>
-                  <van-icon name="edit" class="row-edit" @click.stop="openEditor(p.id)" />
-                </div>
-                <div class="p-model">{{ p.model || '未设置模型' }}</div>
-              </template>
-              <template #right-icon>
-                <van-radio :name="p.id" @click.stop />
-              </template>
-            </van-cell>
-          </van-radio-group>
+        <van-cell-group inset title="对话服务商">
+          <van-cell title="当前服务商" :value="chatProvName" is-link @click="provPicker = 'chat'" />
+          <van-cell title="默认模型" :value="chatProvModel" is-link @click="openEditor(settings.chatProvider)" />
         </van-cell-group>
         <van-cell-group inset>
           <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew">
@@ -170,24 +179,9 @@ async function onClear() {
 
       <!-- 绘图：选默认绘图服务商 -->
       <template v-else-if="sec === 'draw'">
-        <van-cell-group inset title="绘图用服务商（默认用哪个画图）">
-          <van-radio-group v-model="settings.imageProvider">
-            <van-cell
-              v-for="p in drawProviders"
-              :key="p.id"
-              clickable
-              @click="settings.imageProvider = p.id"
-            >
-              <template #title>
-                <span>{{ p.name }}</span>
-                <span class="p-model">{{ p.imageModel || '未设置模型' }}</span>
-                <van-icon name="edit" class="row-edit" @click.stop="openEditor(p.id)" />
-              </template>
-              <template #right-icon>
-                <van-radio :name="p.id" @click.stop />
-              </template>
-            </van-cell>
-          </van-radio-group>
+        <van-cell-group inset title="绘图服务商">
+          <van-cell title="当前服务商" :value="drawProvName" is-link @click="provPicker = 'draw'" />
+          <van-cell title="默认绘图模型" :value="drawProvModel" is-link @click="openEditor(settings.imageProvider)" />
         </van-cell-group>
         <van-cell-group inset>
           <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew">
@@ -251,6 +245,25 @@ async function onClear() {
 
       <div style="height: 16px"></div>
     </div>
+
+    <!-- 服务商选择弹窗（列表可滚动，不受数量影响） -->
+    <van-popup :show="provPicker !== ''" position="bottom" round @update:show="provPicker = ''">
+      <div class="pp-head">选择{{ provPicker === 'chat' ? '对话' : '绘图' }}服务商</div>
+      <div class="pp-list">
+        <div v-for="p in provPickOptions" :key="p.id" class="pp-item" @click="chooseProv(p.id)">
+          <div class="pp-info">
+            <div class="pp-name">{{ p.name }}</div>
+            <div class="pp-model">{{ (provPicker === 'chat' ? p.model : p.imageModel) || '未设置模型' }}</div>
+          </div>
+          <div class="pp-actions">
+            <van-icon name="edit" size="16" @click.stop="openEditor(p.id)" />
+            <van-icon v-if="!p.builtin" name="delete-o" size="16" @click.stop="delProv(p.id)" />
+            <van-icon v-if="provPickCurrent === p.id" name="checked" color="#111111" size="18" />
+          </div>
+        </div>
+      </div>
+      <div class="pp-add" @click="openNew"><van-icon name="plus" size="14" /> 新增自定义服务商</div>
+    </van-popup>
 
     <ProviderEditor v-model:show="editorShow" :provider-id="editingId" />
   </div>
