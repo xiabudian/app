@@ -44,9 +44,15 @@ function buildSettings() {
       { label: '赛博朋克', prompt: '赛博朋克风格，霓虹灯光，雨夜街头，电影感' },
     ],
     drawSizes: [
+      { label: '16:9 4K 横图', size: '3840x2160' },
+      { label: '9:16 4K 竖图', size: '2160x3840' },
       { label: '1:1 方图', size: '1024x1024' },
       { label: '3:4 竖图', size: '768x1024' },
       { label: '4:3 横图', size: '1024x768' },
+      { label: '3:2 横图', size: '1536x1024' },
+      { label: '2:3 竖图', size: '1024x1536' },
+      { label: '16:9 2K 横图', size: '2560x1440' },
+      { label: '9:16 2K 竖图', size: '1440x2560' },
     ],
   }
 
@@ -93,7 +99,20 @@ function buildSettings() {
         typeof s === 'string' ? { label: s, prompt: `${s}风格` } : s
       )
     }
-    if (Array.isArray(saved.drawSizes)) data.drawSizes = saved.drawSizes
+    if (Array.isArray(saved.drawSizes)) {
+      const legacyLabels = JSON.stringify([
+        { label: '1:1 方图', size: '1024x1024' },
+        { label: '3:4 竖图', size: '768x1024' },
+        { label: '4:3 横图', size: '1024x768' },
+      ].map((x) => x.label))
+      const legacyLabels2 = JSON.stringify(['1:1 方图', '3:4 竖图', '4:3 横图', '9:16 手机壁纸'])
+      const savedLabels = JSON.stringify(saved.drawSizes.map((x) => x.label))
+      if (savedLabels === legacyLabels || savedLabels === legacyLabels2) {
+        // 旧默认列表视为未自定义，直接用新默认
+      } else {
+        data.drawSizes = saved.drawSizes
+      }
+    }
 
     const exists = (id) => !!id && (data.providers[id] || data.userProviders.some((u) => u.id === id))
     const canDraw = (id) => {

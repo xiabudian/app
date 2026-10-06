@@ -60,6 +60,7 @@ function onImportFile(e) {
 const sec = ref('chat')
 const editorShow = ref(false)
 const editingId = ref(null) // null = 新增
+const editingMode = ref('chat') // 本次编辑场景：chat=只管文本 / image=只管绘图
 
 const chatProviders = computed(() => allProviders())
 const drawProviders = computed(() => allProviders().filter((p) => p.imageModels?.length))
@@ -125,13 +126,15 @@ const sizesText = computed({
   },
 })
 
-function openEditor(id) {
+function openEditor(id, mode = 'chat') {
   editingId.value = id
+  editingMode.value = mode
   editorShow.value = true
 }
 
-function openNew() {
+function openNew(mode = 'chat') {
   editingId.value = null
+  editingMode.value = mode
   editorShow.value = true
 }
 
@@ -168,10 +171,10 @@ async function onClear() {
       <template v-if="sec === 'chat'">
         <van-cell-group inset title="对话服务商">
           <van-cell title="当前服务商" :value="chatProvName" is-link @click="provPicker = 'chat'" />
-          <van-cell title="默认模型" :value="chatProvModel" is-link @click="openEditor(settings.chatProvider)" />
+          <van-cell title="默认模型" :value="chatProvModel" is-link @click="openEditor(settings.chatProvider, 'chat')" />
         </van-cell-group>
         <van-cell-group inset>
-          <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew">
+          <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew('chat')">
             <template #label>支持添加任意多个 OpenAI 兼容服务（中转站、agens-ai 等）</template>
           </van-cell>
         </van-cell-group>
@@ -181,10 +184,10 @@ async function onClear() {
       <template v-else-if="sec === 'draw'">
         <van-cell-group inset title="绘图服务商">
           <van-cell title="当前服务商" :value="drawProvName" is-link @click="provPicker = 'draw'" />
-          <van-cell title="默认绘图模型" :value="drawProvModel" is-link @click="openEditor(settings.imageProvider)" />
+          <van-cell title="默认绘图模型" :value="drawProvModel" is-link @click="openEditor(settings.imageProvider, 'image')" />
         </van-cell-group>
         <van-cell-group inset>
-          <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew">
+          <van-cell title="新增自定义服务商" icon="plus" clickable @click="openNew('image')">
             <template #label>在弹窗里填好「绘图模型」，它就会出现在上面的列表里</template>
           </van-cell>
         </van-cell-group>
@@ -257,15 +260,15 @@ async function onClear() {
             <div class="pp-model">{{ (provPicker === 'chat' ? p.model : p.imageModel) || '未设置模型' }}</div>
           </div>
           <div class="pp-actions">
-            <van-icon name="edit" size="16" @click.stop="openEditor(p.id)" />
+            <van-icon name="edit" size="16" @click.stop="openEditor(p.id, provPicker === 'chat' ? 'chat' : 'image')" />
             <van-icon v-if="!p.builtin" name="delete-o" size="16" @click.stop="delProv(p.id)" />
             <van-icon v-if="provPickCurrent === p.id" name="checked" color="#111111" size="18" />
           </div>
         </div>
       </div>
-      <div class="pp-add" @click="openNew"><van-icon name="plus" size="14" /> 新增自定义服务商</div>
+      <div class="pp-add" @click="openNew(provPicker === 'chat' ? 'chat' : 'image')"><van-icon name="plus" size="14" /> 新增自定义服务商</div>
     </van-popup>
 
-    <ProviderEditor v-model:show="editorShow" :provider-id="editingId" />
+    <ProviderEditor v-model:show="editorShow" :provider-id="editingId" :mode="editingMode" />
   </div>
 </template>

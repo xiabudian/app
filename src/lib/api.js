@@ -93,7 +93,7 @@ export async function testConnection({ baseUrl, apiKey }) {
 
 export function describeError(e, providerId) {
   if (e?.name === 'AbortError') return '已停止生成'
-  if (e?.name === 'TimeoutError') return '请求超时（180 秒无响应），服务商响应过慢或网络不稳，可点「重试」'
+  if (e?.name === 'TimeoutError') return '请求超时（8 分钟无响应），4K 大图生成较慢，可稍后点「重试」'
   const cause = e?.cause?.message || e?.cause?.code || ''
   const msg = e?.message || String(e)
   if (/failed to fetch|networkerror|load failed|timed out/i.test(msg)) {
@@ -270,13 +270,6 @@ export async function generateImage(opts) {
   return openAIImage(opts)
 }
 
-// gpt-image 系列只接受 1024x1024 / 1536x1024 / 1024x1536 三种尺寸，按用户选的比例就近映射
-function gptImageSize(size) {
-  const [w, h] = String(size).split('x').map(Number)
-  if (!w || !h) return null
-  return w === h ? '1024x1024' : w > h ? '1536x1024' : '1024x1536'
-}
-
 async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
   const auth = { Authorization: `Bearer ${apiKey}` }
   let res
@@ -287,10 +280,7 @@ async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, i
     fd.append('model', model)
     fd.append('prompt', prompt)
     fd.append('image', await dataUrlToBlob(image), 'reference.png')
-    if (size && providerId !== 'xai') {
-      const s = /^gpt-image/i.test(model) ? gptImageSize(size) : size
-      if (s) fd.append('size', s)
-    }
+    if (size && providerId !== 'xai') fd.append('size', size)
     res = await fetch(joinUrl(baseUrl, '/images/edits'), {
       method: 'POST',
       headers: auth,
@@ -301,9 +291,9 @@ async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, i
     const body = { model, prompt, n: 1 }
     // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
     if (size && providerId !== 'xai') {
-      const s = /^gpt-image/i.test(model) ? gptImageSize(size) : size
-      if (providerId === 'siliconflow') body.image_size = s
-      else body.size = s
+      // 直接传用户选的像素尺寸（XPivot/ApiMart 均支持精确尺寸，含 4K）
+      if (providerId === 'siliconflow') body.image_size = size
+      else body.size = size
     }
     res = await fetch(joinUrl(baseUrl, '/images/generations'), {
       method: 'POST',

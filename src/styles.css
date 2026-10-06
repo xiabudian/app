@@ -1405,10 +1405,25 @@ body {
 }
 
 /* 服务商行：单行显示 名称 + 当前默认模型 */
+.p-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.p-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
 .p-model {
-  margin-left: 8px;
   font-size: 12px;
-  color: #9aa3b2;
+  color: var(--txt-3);
+  margin-top: 3px;
 }
 
 .row-edit {

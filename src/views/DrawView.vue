@@ -9,7 +9,7 @@ import { compressImage } from '../lib/storage'
 const mode = ref('text') // text=文生图 / image=图生图
 const prompt = ref('')
 const style = ref('')
-const size = ref('1024x1024')
+const size = ref('2160x3840') // 默认竖版 4K
 const refFiles = ref([])
 
 // 服务商和默认模型都在「设置」里配置，这里只读出来展示
