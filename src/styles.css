@@ -49,6 +49,8 @@ body {
 /* ---------- 顶部导航栏（所有页面统一） ---------- */
 .van-nav-bar {
   background: transparent;
+  /* APK 全屏模式下避让系统状态栏（若 WebView 上报了安全区） */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .van-nav-bar::after {

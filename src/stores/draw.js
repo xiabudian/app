@@ -108,7 +108,7 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
       image,
     })
   } catch (e) {
-    item.error = describeError(e)
+    item.error = describeError(e, pid)
   } finally {
     item.loading = false
     // 记录本次请求的响应耗时（秒，保留一位小数）

@@ -91,13 +91,19 @@ export async function testConnection({ baseUrl, apiKey }) {
   return Array.isArray(j.data) ? j.data.length : 0
 }
 
-export function describeError(e) {
+export function describeError(e, providerId) {
   if (e?.name === 'AbortError') return '已停止生成'
+  if (e?.name === 'TimeoutError') return '请求超时（180 秒无响应），服务商响应过慢或网络不稳，可点「重试」'
+  const cause = e?.cause?.message || e?.cause?.code || ''
   const msg = e?.message || String(e)
-  if (/failed to fetch|networkerror|load failed/i.test(msg)) {
-    return '网络请求失败：请检查网络与服务地址。若用的是演示模式，请先在项目目录运行 node mock-server.mjs'
+  if (/failed to fetch|networkerror|load failed|timed out/i.test(msg)) {
+    if (providerId === 'demo') {
+      return '网络请求失败：演示模式需要先在电脑的项目目录运行 node mock-server.mjs'
+    }
+    const detail = cause ? `（${cause}）` : ''
+    return `网络请求失败${detail}，请检查网络后点「重试」`
   }
-  if (/\b401\b|unauthorized/i.test(msg)) return 'API Key 无效或未填写（401）'
+  if (/\b401\b|unauthorized|无效的令牌/i.test(msg)) return 'API Key 无效或未填写（401）'
   if (/\b402\b/.test(msg)) return '账户余额不足（402）'
   if (/\b429\b/.test(msg)) return '请求太频繁或额度不足（429）'
   return msg
@@ -121,6 +127,13 @@ function extractImageUrl(j) {
  * 文生图 / 图生图（OpenAI 兼容的 /images/generations 接口）。
  * 图生图：image 传参考图（data URL），需要用支持编辑的模型（如 Qwen-Image-Edit）。
  */
+// 生图这类请求给个总超时，避免网络异常时任务永远挂着（180 秒）
+function withTimeout(external, timeoutMs) {
+  const t = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : null
+  if (external && t && AbortSignal.any) return AbortSignal.any([external, t])
+  return external || t || undefined
+}
+
 export async function generateImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
   const body = { model, prompt, n: 1 }
   // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
@@ -143,7 +156,7 @@ export async function generateImage({ providerId, baseUrl, apiKey, model, prompt
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
-    signal,
+    signal: withTimeout(signal, 180000),
   })
 
   if (!res.ok) {

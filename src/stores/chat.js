@@ -138,7 +138,7 @@ async function generate(conv) {
     if (e?.name === 'AbortError') {
       if (!assistant.content) assistant.content = '（已停止生成）'
     } else {
-      assistant.error = describeError(e)
+      assistant.error = describeError(e, settings.chatProvider)
       if (!assistant.content) assistant.content = '生成失败'
     }
   } finally {
