@@ -193,6 +193,7 @@ async function onClear() {
       <!-- 通用 -->
       <template v-else>
         <van-cell-group inset title="通用">
+          <van-cell title="版本" :value="appVersion" />
           <van-field
             v-model="settings.systemPrompt"
             type="textarea"
