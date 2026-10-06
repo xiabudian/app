@@ -110,10 +110,14 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
       image,
     })
   } catch (e) {
-    item.error = describeError(e, pid)
-    // 请求期间切过后台 → 大概率是系统冻结了连接，标记出来供回前台自动重试
-    if (/网络请求失败|超时/.test(item.error) && (!appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000)) {
-      item.error += '（切后台导致连接中断，点「重试」重新生成）'
+    if (e?.name === 'AbortError') {
+      // 绘图页没有手动停止按钮：中断只可能是切后台/刷新导致连接被掐断
+      item.error = '生成被中断（切后台或刷新页面导致），点「重试」重新生成'
+    } else {
+      item.error = describeError(e, pid)
+      if (/网络请求失败|超时/.test(item.error) && (!appVisibility.visible || Date.now() - appVisibility.lastHiddenAt < 30000)) {
+        item.error += '（切后台导致连接中断，点「重试」重新生成）'
+      }
     }
   } finally {
     item.loading = false

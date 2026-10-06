@@ -5,7 +5,9 @@
   "server": {
     "androidScheme": "https"
   },
-  "android": {
-    "adjustMarginsForEdgeToEdge": "force"
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native"
+    }
   }
 }
