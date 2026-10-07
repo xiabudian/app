@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { settings, allProviders, providerRef, removeUserProvider } from '../stores/settings'
 import { clearAll } from '../stores/chat'
 import { showToast, showConfirmDialog } from 'vant'
@@ -9,6 +9,17 @@ import ProviderEditor from '../components/ProviderEditor.vue'
 
 const importInput = ref(null)
 const restoreInput = ref(null)
+const appVersion = ref('__APP_VERSION__')
+
+onMounted(async () => {
+  try {
+    const r = await fetch('./version.json', { cache: 'no-store' })
+    if (r.ok) {
+      const j = await r.json()
+      appVersion.value = `1.0.${j.build}-${j.commit}`
+    }
+  } catch { /* keep */ }
+})
 
 // 导出全部数据：配置 + 作品（含图片与提示词）
 async function exportAll() {

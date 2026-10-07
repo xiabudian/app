@@ -141,13 +141,13 @@ async function onGenerate() {
         <textarea
           v-model="prompt"
           class="prompt-input"
-          maxlength="500"
+          maxlength="2000"
           rows="3"
           :placeholder="mode === 'text'
             ? '描述你想要的画面，例如：一只戴宇航员头盔的橘猫，漂浮在星空中，电影感'
             : '描述如何修改参考图，例如：把背景换成樱花盛开的公园'"
         ></textarea>
-        <div class="prompt-count">{{ prompt.length }}/500</div>
+        <div class="prompt-count">{{ prompt.length }}/2000</div>
       </div>
 
       <!-- 风格与比例：点卡片从底部弹出选项列表，选项在「设置 → 通用」里自定义 -->
