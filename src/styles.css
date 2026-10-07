@@ -92,8 +92,12 @@ body {
 
 /* ---------- 底部导航（所有页面统一） ---------- */
 .van-tabbar {
-  background: #fff;
-  box-shadow: 0 -2px 12px rgba(31, 41, 70, 0.04);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -2px 12px rgba(124, 108, 230, 0.08);
+  /* 固定底部留白：保证手势条不遮挡页签 */
+  padding-bottom: 18px;
 }
 
 .van-tabbar::after {
