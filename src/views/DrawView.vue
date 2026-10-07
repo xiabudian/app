@@ -15,10 +15,15 @@ const refFiles = ref([])
 // 服务商和默认模型都在「设置」里配置，这里只读出来展示
 const conf = computed(() => providerRef(settings.imageProvider) || providerRef('demo'))
 const drawableProviders = computed(() => allProviders().filter((p) => p.imageModels?.length))
-const statusText = computed(() =>
-  `${conf.value?.name || '未选择服务商'} · ${conf.value?.imageModel || '未设置绘图模型'}`
-)
+const statusText = computed(() => {
+  if (pickedWf.value) return `ComfyUI 本地工作流 · ${pickedWf.value.name}`
+  return `${conf.value?.name || '未选择服务商'} · ${conf.value?.imageModel || '未设置绘图模型'}`
+})
 const runningCount = computed(() => draw.results.filter((r) => r.loading).length)
+
+// ComfyUI 工作流（设置 → 通用 里导入的）可选为生成引擎；不选则走云服务商
+const comfyWfs = computed(() => (settings.comfy?.workflows || []).filter((w) => w.type === 'image'))
+const pickedWf = computed(() => comfyWfs.value.find((w) => w.id === settings.comfy?.drawWorkflow))
 
 // 风格 / 比例选项来自「设置 → 通用」，这里做成下拉框
 const styleOptions = computed(() => [
@@ -31,8 +36,16 @@ const sizeOptions = computed(() =>
 // 底部弹出式选择器
 const pickShow = ref(false)
 const pickType = ref('style')
-const pickOptions = computed(() => (pickType.value === 'style' ? styleOptions.value : sizeOptions.value))
-const pickCurrent = computed(() => (pickType.value === 'style' ? style.value : size.value))
+const wfOptions = computed(() => [
+  { text: '不使用（走云服务商）', value: '' },
+  ...comfyWfs.value.map((w) => ({ text: `ComfyUI：${w.name}`, value: w.id })),
+])
+const pickOptions = computed(() =>
+  pickType.value === 'style' ? styleOptions.value : pickType.value === 'size' ? sizeOptions.value : wfOptions.value
+)
+const pickCurrent = computed(() =>
+  pickType.value === 'style' ? style.value : pickType.value === 'size' ? size.value : settings.comfy?.drawWorkflow || ''
+)
 const styleText = computed(() => styleOptions.value.find((o) => o.value === style.value)?.text || '不使用')
 const sizeText = computed(() => sizeOptions.value.find((o) => o.value === size.value)?.text || size.value)
 
@@ -43,7 +56,8 @@ function openPick(t) {
 
 function choose(v) {
   if (pickType.value === 'style') style.value = v
-  else size.value = v
+  else if (pickType.value === 'size') size.value = v
+  else settings.comfy.drawWorkflow = v
   pickShow.value = false
 }
 
@@ -168,8 +182,17 @@ async function onGenerate() {
         </div>
       </div>
 
+      <!-- ComfyUI 工作流引擎（设置里导入过才会显示） -->
+      <div v-if="comfyWfs.length" class="pick" style="margin-top: 10px" @click="openPick('wf')">
+        <div class="pick-main">
+          <div class="pick-label">生成引擎</div>
+          <div class="pick-value">{{ pickedWf ? `ComfyUI：${pickedWf.name}` : '云服务商' }}</div>
+        </div>
+        <van-icon name="arrow-down" size="12" />
+      </div>
+
       <van-popup :show="pickShow" position="bottom" round @update:show="pickShow = $event">
-        <div class="picker-title">{{ pickType === 'style' ? '🎨 选择风格' : '📐 选择比例' }}</div>
+        <div class="picker-title">{{ pickType === 'style' ? '🎨 选择风格' : pickType === 'size' ? '📐 选择比例' : '⚙️ 选择生成引擎' }}</div>
         <div class="picker-list">
           <div
             v-for="o in pickOptions"

@@ -3,6 +3,7 @@ import { showToast } from 'vant'
 import { loadJSON, saveJSON, KEYS, downloadImage, saveImage } from '../lib/storage'
 import { idbPut, idbGet, idbDel } from '../lib/idb'
 import { generateImage, describeError } from '../lib/api'
+import { runComfyImage } from '../lib/comfy'
 import { settings, providerRef } from './settings'
 import { ui, TAB, appVisibility } from './ui'
 import { startKeepAlive, stopKeepAlive } from '../lib/keepalive'
@@ -100,15 +101,30 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
   draw.generating = true
   await startKeepAlive() // 生成期间保活：切到其他应用连接不断
   try {
-    item.url = await generateImage({
-      providerId: pid,
-      baseUrl: conf.baseUrl,
-      apiKey: imageKey,
-      model: item.model,
-      prompt,
-      size,
-      image,
-    })
+    if (pid === 'comfy') {
+      // ComfyUI 工作流：在本地 ComfyUI 上执行（无需 Key，比例/尺寸由工作流自身决定）
+      const wf = (settings.comfy?.workflows || []).find((w) => w.id === item.wfId)
+      if (!wf) throw new Error('找不到工作流，可能已被删除，请在绘图页重新选择')
+      if (!settings.comfy.baseUrl) throw new Error('请先到「设置 → 通用 → ComfyUI」填写服务器地址')
+      const outs = await runComfyImage({
+        baseUrl: settings.comfy.baseUrl,
+        workflow: JSON.parse(wf.apiJson),
+        bind: wf.bind || {},
+        prompt,
+        refDataUrl: image || undefined,
+      })
+      item.url = outs[0]
+    } else {
+      item.url = await generateImage({
+        providerId: pid,
+        baseUrl: conf.baseUrl,
+        apiKey: imageKey,
+        model: item.model,
+        prompt,
+        size,
+        image,
+      })
+    }
   } catch (e) {
     const provName = conf.name || pid
     if (e?.name === 'AbortError') {
@@ -153,12 +169,29 @@ export async function generateDraw({ prompt, size, image, stylePrompt }) {
     showToast('最多同时生成 3 张，请等一张完成')
     return
   }
-  const v = validate()
-  if (!v || v.err) return v?.err
-  const { pid, conf, imageKey } = v
   if (!prompt && !image) {
     showToast('请先输入提示词')
     return
+  }
+
+  // 选了 ComfyUI 工作流 → 走本地 ComfyUI；没选 → 走云服务商
+  const cwf = (settings.comfy?.workflows || []).find(
+    (w) => w.type === 'image' && w.id === settings.comfy?.drawWorkflow
+  )
+  let pid, conf, imageKey = ''
+  if (cwf) {
+    pid = 'comfy'
+    conf = { name: 'ComfyUI' }
+    if (!settings.comfy.baseUrl) {
+      showToast('请先到「设置 → 通用 → ComfyUI」填写服务器地址')
+      return 'need-setup'
+    }
+  } else {
+    const v = validate()
+    if (!v || v.err) return v?.err
+    pid = v.pid
+    conf = v.conf
+    imageKey = v.imageKey
   }
 
   // 风格对应的固定提示词追加在用户描述后面
@@ -167,8 +200,9 @@ export async function generateDraw({ prompt, size, image, stylePrompt }) {
     id: genId(),
     prompt: fullPrompt, // 实际发给模型的完整提示词
     userPrompt: prompt || '（参考图改图）', // 用户自己输入的部分，作品页展示用
-    model: conf.imageModel || conf.imageModels[0],
+    model: pid === 'comfy' ? cwf.name : conf.imageModel || conf.imageModels[0],
     providerId: pid,
+    wfId: cwf?.id || '', // comfy 工作流 id（重试时按它找回工作流）
     size,
     image,
     url: '',
@@ -188,6 +222,21 @@ export async function generateDraw({ prompt, size, image, stylePrompt }) {
 // 失败重试：原地把这条任务重新跑一遍（参数不变）
 export async function retryDraw(item) {
   if (item.loading) return
+  if (item.providerId === 'comfy') {
+    if (!settings.comfy.baseUrl) {
+      showToast('请先到「设置 → 通用 → ComfyUI」填写服务器地址')
+      return
+    }
+    item.loading = true
+    item.error = ''
+    item.url = ''
+    await runGeneration(item, 'comfy', { name: 'ComfyUI' }, '', {
+      prompt: item.prompt,
+      size: item.size,
+      image: item.image,
+    })
+    return
+  }
   const conf = providerRef(item.providerId) || providerRef(settings.imageProvider)
   if (!conf?.baseUrl) {
     showToast('请先到「设置」填写服务地址')

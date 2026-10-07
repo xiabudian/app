@@ -4,6 +4,7 @@ import { ui, TAB } from './stores/ui'
 import { draw } from './stores/draw'
 import ChatView from './views/ChatView.vue'
 import DrawView from './views/DrawView.vue'
+import VoiceView from './views/VoiceView.vue'
 import WorksView from './views/WorksView.vue'
 import HistoryView from './views/HistoryView.vue'
 import SettingsView from './views/SettingsView.vue'
@@ -21,6 +22,7 @@ watch(
   <div class="app-shell">
     <ChatView v-show="ui.tab === TAB.CHAT" />
     <DrawView v-show="ui.tab === TAB.DRAW" />
+    <VoiceView v-show="ui.tab === TAB.VOICE" />
     <WorksView v-show="ui.tab === TAB.WORKS" />
     <HistoryView v-show="ui.tab === TAB.HISTORY" />
     <SettingsView v-show="ui.tab === TAB.SETTINGS" />
@@ -28,6 +30,7 @@ watch(
     <van-tabbar v-model="ui.tab" :fixed="false">
       <van-tabbar-item icon="chat-o">对话</van-tabbar-item>
       <van-tabbar-item icon="photograph">绘图</van-tabbar-item>
+      <van-tabbar-item icon="volume-o">语音</van-tabbar-item>
       <van-tabbar-item icon="photo-o" :dot="draw.unseen > 0">作品</van-tabbar-item>
       <van-tabbar-item icon="clock-o">历史</van-tabbar-item>
       <van-tabbar-item icon="setting-o">设置</van-tabbar-item>

@@ -33,6 +33,9 @@ function buildSettings() {
     autoDownload: false, // 生成成功后自动下载图片到「下载」文件夹
     ttsModel: 'tts-1', // 语音合成模型
     sttModel: 'whisper-1', // 语音识别模型
+    welcomed: false, // 是否看过首次欢迎页
+    comfy: { baseUrl: '', drawWorkflow: '', workflows: [] }, // ComfyUI 集成：drawWorkflow=绘图页选中的工作流 id；workflows 元素 {id,name,type:'image'|'tts',apiJson,bind:{text,image,audio,output}}
+    voice: { engine: 'openai', ttsVoice: 'alloy', comfyWorkflow: '' }, // 语音页设置
     providers,
     userProviders: [],
     // 绘图页下拉框的选项，可在「设置 → 通用」里自定义
@@ -93,6 +96,12 @@ function buildSettings() {
     if (typeof saved.autoDownload === 'boolean') data.autoDownload = saved.autoDownload
     if (typeof saved.ttsModel === 'string') data.ttsModel = saved.ttsModel
     if (typeof saved.sttModel === 'string') data.sttModel = saved.sttModel
+    if (saved.comfy && typeof saved.comfy === 'object') {
+      data.comfy.baseUrl = saved.comfy.baseUrl || ''
+      data.comfy.drawWorkflow = saved.comfy.drawWorkflow || ''
+      if (Array.isArray(saved.comfy.workflows)) data.comfy.workflows = saved.comfy.workflows
+    }
+    if (saved.voice && typeof saved.voice === 'object') Object.assign(data.voice, saved.voice)
     if (Array.isArray(saved.drawStyles)) {
       // 兼容旧格式（纯字符串数组）→ 迁移为 { label, prompt }
       data.drawStyles = saved.drawStyles.map((s) =>

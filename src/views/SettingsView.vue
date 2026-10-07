@@ -5,10 +5,58 @@ import { clearAll } from '../stores/chat'
 import { showToast, showConfirmDialog } from 'vant'
 import { downloadImage } from '../lib/storage'
 import { buildBackup, applyBackup, saveBackupFile } from '../lib/backup'
+import { detectComfyNodes } from '../lib/comfy'
 import ProviderEditor from '../components/ProviderEditor.vue'
 
 const importInput = ref(null)
 const restoreInput = ref(null)
+const wfInput = ref(null)
+const comfyWfName = ref('')
+
+// 导入 ComfyUI 工作流（必须是「导出(API)」格式：节点id → {class_type, inputs}）
+function onWfFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const apiJson = String(reader.result || '')
+      const wf = JSON.parse(apiJson)
+      if (!wf || typeof wf !== 'object' || Array.isArray(wf) || !Object.keys(wf).length) {
+        throw new Error('空的或无效的工作流 JSON')
+      }
+      if (!Object.values(wf).some((n) => n && n.class_type)) {
+        throw new Error('不是 API 格式：请在 ComfyUI 里用「工作流 → 导出(API)」导出')
+      }
+      const det = detectComfyNodes(wf)
+      const type = det.outAudios.length ? 'tts' : 'image'
+      if (type === 'image' && !det.outImages.length) {
+        throw new Error('没找到输出节点（SaveImage / SaveAudio），无法取结果')
+      }
+      const opt = (list) => list.map((n) => ({ id: n.id, label: n.title || n.class_type }))
+      settings.comfy.workflows.unshift({
+        id: `wf-${Date.now().toString(36)}`,
+        name: comfyWfName.value.trim() || file.name.replace(/\.json$/i, '') || '工作流',
+        type, // 有 SaveAudio 节点 → 语音；否则 → 绘图
+        apiJson,
+        bind: { text: det.text[0]?.id || '', image: det.image[0]?.id || '', audio: det.audio[0]?.id || '' },
+        bindOptions: { text: opt(det.text), image: opt(det.image), audio: opt(det.audio) },
+      })
+      comfyWfName.value = ''
+      showToast(`已导入「${settings.comfy.workflows[0].name}」（${type === 'tts' ? '语音' : '绘图'}）`)
+    } catch (err) {
+      showToast('导入失败：' + (err?.message || 'JSON 解析出错'))
+    }
+  }
+  reader.readAsText(file)
+}
+
+function removeWf(id) {
+  settings.comfy.workflows = settings.comfy.workflows.filter((w) => w.id !== id)
+  if (settings.comfy.drawWorkflow === id) settings.comfy.drawWorkflow = ''
+  if (settings.voice?.comfyWorkflow === id) settings.voice.comfyWorkflow = ''
+}
 const appVersion = ref('__APP_VERSION__')
 
 onMounted(async () => {
@@ -256,6 +304,45 @@ async function onClear() {
         <van-field v-model="settings.ttsModel" label="合成模型" placeholder="tts-1 / minimax-speech 等" />
         <van-field v-model="settings.sttModel" label="识别模型" placeholder="whisper-1 等" />
       </van-cell-group>
+
+        <van-cell-group inset title="ComfyUI（本地工作流引擎）">
+          <van-field v-model="settings.comfy.baseUrl" label="服务器" placeholder="http://192.168.1.10:8188" />
+          <van-cell
+            title="导入工作流 JSON"
+            is-link
+            @click="wfInput.click()"
+            label="ComfyUI 菜单「工作流 → 导出(API)」保存的文件；含 SaveAudio 节点识别为语音，其余为绘图"
+          />
+          <van-field v-model="comfyWfName" label="工作流名称" placeholder="可选，导入前填写，留空用文件名" />
+          <input ref="wfInput" type="file" accept=".json,application/json" style="display: none" @change="onWfFile" />
+          <div v-for="w in settings.comfy.workflows" :key="w.id" class="wf-item">
+            <div class="wf-head">
+              <span class="wf-type" :class="w.type">{{ w.type === 'tts' ? '语音' : '绘图' }}</span>
+              <span class="wf-name">{{ w.name }}</span>
+              <van-icon name="delete-o" size="16" @click="removeWf(w.id)" />
+            </div>
+            <div v-if="w.bindOptions" class="wf-bind">
+              <label v-if="w.bindOptions.text.length > 1">
+                提示词节点
+                <select v-model="w.bind.text">
+                  <option v-for="o in w.bindOptions.text" :key="o.id" :value="o.id">{{ o.label }}</option>
+                </select>
+              </label>
+              <label v-if="w.type === 'image' && w.bindOptions.image.length > 1">
+                参考图节点
+                <select v-model="w.bind.image">
+                  <option v-for="o in w.bindOptions.image" :key="o.id" :value="o.id">{{ o.label }}</option>
+                </select>
+              </label>
+              <label v-if="w.type === 'tts' && w.bindOptions.audio.length > 1">
+                参考音频节点
+                <select v-model="w.bind.audio">
+                  <option v-for="o in w.bindOptions.audio" :key="o.id" :value="o.id">{{ o.label }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </van-cell-group>
 
       <van-cell-group inset title="保存与备份">
         <van-cell center title="生成后自动下载图片" label="保存到浏览器的「下载」文件夹；下载位置可在浏览器设置中修改">
