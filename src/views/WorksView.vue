@@ -159,7 +159,7 @@ async function saveWork(r) {
   const name = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}.${ext}`
   try {
     const where = await saveImage(r.url, name)
-    showToast(where === 'app' ? '已存到应用私有目录（图库不可见）' : '已下载到「下载」文件夹')
+    showToast(where === 'app' ? '已存到手机 下载/AIChat/（图库不显示）' : '已下载到「下载」文件夹')
   } catch {
     showToast('保存失败')
   }

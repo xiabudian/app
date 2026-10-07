@@ -54,15 +54,11 @@ export function applyBackup(data) {
 export async function saveBackupFile(json, filename) {
   if (Capacitor.isNativePlatform()) {
     try {
-      const { Filesystem, Directory } = Capacitor.getPlugin('Filesystem')
-      await Filesystem.writeFile({
-        path: `AIChat/backup/${filename}`,
-        data: json,
-        directory: Directory.Documents,
-        recursive: true,
-        encoding: 'utf8',
-      })
-      return 'app' // 文件管理/Documents/AIChat/backup/
+      const Saver = Capacitor.getPlugin('Saver')
+      if (!Saver?.saveToDownloads) throw new Error('no saver plugin')
+      const b64 = btoa(unescape(encodeURIComponent(json)))
+      await Saver.saveToDownloads({ data: b64, name: filename, mime: 'application/json' })
+      return 'downloads' // 公共下载目录（文件管理可见）
     } catch { /* 走浏览器下载兜底 */ }
   }
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))

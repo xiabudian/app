@@ -52,13 +52,13 @@ export function compressImage(dataUrl, maxSize = 1024, quality = 0.85) {
 export async function saveImage(url, filename) {
   try {
     if (Capacitor.isNativePlatform()) {
-      const { Filesystem, Directory } = Capacitor.getPlugin('Filesystem') || {}
-      if (!Filesystem) throw new Error('no fs plugin')
+      // APK：写入系统「下载/AIChat/」——文件管理可见，图库不检索
+      const Saver = Capacitor.getPlugin('Saver')
+      if (!Saver?.saveToDownloads) throw new Error('no saver plugin')
       let base64 = ''
       if (url.startsWith('data:')) {
         base64 = url.split(',')[1]
       } else {
-        // http 临时链接 → 下载成 blob 再转 base64（部分域名可能因 CORS 失败，走兜底）
         const blob = await (await fetch(url)).blob()
         base64 = await new Promise((resolve, reject) => {
           const fr = new FileReader()
@@ -67,12 +67,7 @@ export async function saveImage(url, filename) {
           fr.readAsDataURL(blob)
         })
       }
-      await Filesystem.writeFile({
-        path: `AIChat/${filename}`,
-        data: base64,
-        directory: Directory.Documents, // 公共 Documents：文件管理可见
-        recursive: true,
-      })
+      await Saver.saveToDownloads({ data: base64, name: filename })
       // 写 .nomedia：图库不检索这个文件夹，但文件管理器能看到
       try {
         await Filesystem.writeFile({ path: 'AIChat/.nomedia', data: '1', directory: Directory.Documents, recursive: true })
