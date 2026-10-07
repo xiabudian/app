@@ -1,4 +1,6 @@
 // 核心网络层：调用 OpenAI 兼容接口，逐字读取流式响应
+import { CapacitorHttp } from '@capacitor/core'
+
 export function joinUrl(base, path) {
   const trimmed = (base || '').replace(/\/+$/, '')
   if (trimmed.endsWith(path)) return trimmed // 用户直接填了完整接口地址的情况
@@ -153,6 +155,38 @@ async function dataUrlToBlob(dataUrl) {
   return await (await fetch(dataUrl)).blob()
 }
 
+// 统一请求：APK 里走原生 HTTP（没有跨域限制，任何中转站可用）；网页走 fetch
+async function httpJson(native, url, { method = 'POST', headers, body, isForm = false, signal, readTimeoutMs = 480000 }) {
+  if (native && CapacitorHttp?.request) {
+    const res = await CapacitorHttp.request({
+      url,
+      method,
+      headers: isForm ? headers : { 'Content-Type': 'application/json', ...headers },
+      data: isForm ? body : body ? JSON.stringify(body) : undefined,
+      connectTimeout: 60000,
+      readTimeout: readTimeoutMs,
+    })
+    const data = typeof res.data === 'string' ? safeJsonParse(res.data) : res.data
+    return { ok: res.status >= 200 && res.status < 300, status: res.status, data }
+  }
+  const res = await fetch(url, {
+    method,
+    headers: isForm ? headers : { 'Content-Type': 'application/json', ...headers },
+    body: isForm ? body : body ? JSON.stringify(body) : undefined,
+    signal,
+  })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data }
+}
+
+function safeJsonParse(t) {
+  try {
+    return JSON.parse(t)
+  } catch {
+    return {}
+  }
+}
+
 // 把临时图片链接转成本地 data URL（官方链接 72 小时会过期），失败就用原链接
 async function urlToDataUrl(url) {
   try {
@@ -270,49 +304,38 @@ export async function generateImage(opts) {
   return openAIImage(opts)
 }
 
-async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal }) {
-  const auth = { Authorization: `Bearer ${apiKey}` }
-  let res
+async function openAIImage({ providerId, baseUrl, apiKey, model, prompt, size, image, signal, native }) {
+  const headers = { Authorization: `Bearer ${apiKey}` }
+  let reqUrl, body, isForm = false
 
   if (image) {
     // 图生图（编辑）：OpenAI 标准走 /v1/images/edits，multipart 表单上传参考图
+    reqUrl = joinUrl(baseUrl, '/images/edits')
     const fd = new FormData()
     fd.append('model', model)
     fd.append('prompt', prompt)
     fd.append('image', await dataUrlToBlob(image), 'reference.png')
     if (size && providerId !== 'xai') fd.append('size', size)
-    res = await fetch(joinUrl(baseUrl, '/images/edits'), {
-      method: 'POST',
-      headers: auth,
-      body: fd,
-      signal,
-    })
+    body = fd
+    isForm = true
   } else {
-    const body = { model, prompt, n: 1 }
+    reqUrl = joinUrl(baseUrl, '/images/generations')
+    body = { model, prompt, n: 1 }
     // 尺寸参数各家叫法不同：硅基流动用 image_size，其余用 size；xAI 两个都不支持
     if (size && providerId !== 'xai') {
       // 直接传用户选的像素尺寸（XPivot/ApiMart 均支持精确尺寸，含 4K）
       if (providerId === 'siliconflow') body.image_size = size
       else body.size = size
     }
-    res = await fetch(joinUrl(baseUrl, '/images/generations'), {
-      method: 'POST',
-      headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal,
-    })
   }
 
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`
-    try {
-      const j = await res.json()
-      msg = j.error?.message || j.message || msg
-    } catch { /* 响应不是 JSON 就用状态码 */ }
-    throw new Error(msg)
+  const r = await httpJson(native, reqUrl, { headers, body, isForm, signal, readTimeoutMs: 480000 })
+  if (!r.ok) {
+    const d = r.data || {}
+    throw new Error(d?.error?.message || d?.message || `HTTP ${r.status}`)
   }
 
-  const url = extractImageUrl(await res.json())
-  if (!url) throw new Error('服务返回成功，但没能解析出图片地址')
-  return url
+  const imgUrl = extractImageUrl(r.data)
+  if (!imgUrl) throw new Error('服务返回成功，但没能解析出图片地址')
+  return imgUrl
 }
