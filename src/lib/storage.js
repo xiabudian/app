@@ -1,4 +1,7 @@
 // localStorage 的读写封装：所有数据（Key、对话记录）都只存在本机浏览器里
+import { Capacitor } from '@capacitor/core'
+import { showToast } from 'vant'
+
 export const KEYS = {
   settings: 'ai-chat.settings.v1',
   conversations: 'ai-chat.conversations.v1',
@@ -23,8 +26,6 @@ export function saveJSON(key, value) {
   }
 }
 
-import { Capacitor } from '@capacitor/core'
-
 // 把上传的图片压到最长边 1024px 的 JPEG，否则 base64 存 localStorage 很容易超容量
 export function compressImage(dataUrl, maxSize = 1024, quality = 0.85) {
   return new Promise((resolve) => {
@@ -44,40 +45,48 @@ export function compressImage(dataUrl, maxSize = 1024, quality = 0.85) {
   })
 }
 
+// http 临时链接 → base64（部分域名可能因 CORS 失败，返回空串）
+async function urlToBase64(url) {
+  try {
+    const blob = await (await fetch(url)).blob()
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result).split(',')[1] || '')
+      fr.onerror = reject
+      fr.readAsDataURL(blob)
+    })
+  } catch {
+    return ''
+  }
+}
+
 /**
  * 保存生成图。
- * APK：写入应用私有目录（files/AIChat/），不会被系统图库检索到；
+ * APK：通过系统 MediaStore 写入「下载/AIChat/」——文件管理器可见、图库不检索，失败会弹出真实原因；
  * 网页：走浏览器下载（下载位置由浏览器决定）。
  */
 export async function saveImage(url, filename) {
-  try {
-    if (Capacitor.isNativePlatform()) {
-      // APK：写入系统「下载/AIChat/」——文件管理可见，图库不检索
+  if (Capacitor.isNativePlatform()) {
+    try {
       const Saver = Capacitor.getPlugin('Saver')
-      if (!Saver?.saveToDownloads) throw new Error('no saver plugin')
+      if (!Saver?.saveToDownloads) throw new Error('Saver 插件未注册')
       let base64 = ''
       if (url.startsWith('data:')) {
         base64 = url.split(',')[1]
       } else {
-        const blob = await (await fetch(url)).blob()
-        base64 = await new Promise((resolve, reject) => {
-          const fr = new FileReader()
-          fr.onload = () => resolve(String(fr.result).split(',')[1] || '')
-          fr.onerror = reject
-          fr.readAsDataURL(blob)
-        })
+        base64 = await urlToBase64(url)
+        if (!base64) throw new Error('图片链接下载失败（临时链接可能已过期）')
       }
       await Saver.saveToDownloads({ data: base64, name: filename })
-      // 写 .nomedia：图库不检索这个文件夹，但文件管理器能看到
-      try {
-        await Filesystem.writeFile({ path: 'AIChat/.nomedia', data: '1', directory: Directory.Documents, recursive: true })
-      } catch { /* ignore */ }
-      return 'app' // 已存到 Documents/AIChat/
+      showToast('已保存到手机 下载/AIChat/')
+      return 'downloads'
+    } catch (e) {
+      const msg = e?.message || String(e)
+      showToast('保存失败：' + msg)
+      throw new Error(msg)
     }
-  } catch (e) {
-    console.warn('保存到应用目录失败，改用浏览器下载', e)
   }
-  // 网页端 / 兜底：浏览器下载
+  // 网页端：浏览器下载
   try {
     const obj = URL.createObjectURL(await (await fetch(url)).blob())
     const a = document.createElement('a')
