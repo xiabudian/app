@@ -68,6 +68,15 @@ function fmtTime(ts) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+async function copyPath() {
+  try {
+    await navigator.clipboard.writeText(detailItem.value.savedPath || '')
+    showToast('路径已复制')
+  } catch {
+    showToast('复制失败')
+  }
+}
+
 async function copyPrompt() {
   try {
     await navigator.clipboard.writeText(detailItem.value.prompt || '')
@@ -159,9 +168,10 @@ async function saveWork(r) {
   const name = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}.${ext}`
   try {
     const where = await saveImage(r.url, name)
-    showToast(where === 'app' ? '已存到手机 下载/AIChat/（图库不显示）' : '已下载到「下载」文件夹')
-  } catch {
-    showToast('保存失败')
+    if (where === 'app') r.savedPath = `/storage/emulated/0/Pictures/AIChat/${name}`
+    showToast(where === 'app' ? '已存到手机 Pictures/AIChat/' : '已下载到「下载」文件夹')
+  } catch (e) {
+    showToast('保存失败：' + (e?.message || e))
   }
 }
 </script>
@@ -260,6 +270,10 @@ async function saveWork(r) {
         <div class="d-row">
           <div class="d-label">提示词（实际发送）</div>
           <p class="d-prompt">{{ detailItem.prompt }}</p>
+        </div>
+        <div class="d-row" v-if="detailItem.savedPath">
+          <div class="d-label">文件完整路径（点按复制）</div>
+          <p class="d-path" @click="copyPath">{{ detailItem.savedPath }}</p>
         </div>
         <div class="d-meta">
           <span>模型：{{ detailItem.model }}</span>

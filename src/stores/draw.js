@@ -133,8 +133,11 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
       const name = `AI绘图_${(item.userPrompt || 'image').slice(0, 12)}_${item.id.slice(0, 6)}.${ext}`
       saveImage(item.url, name)
         .then((where) => {
-          if (where === 'downloads' && ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) {
-            showToast('已保存到手机 下载/AIChat/ 文件夹')
+          if (where === 'app') {
+            item.savedPath = `/storage/emulated/0/Pictures/AIChat/${name}`
+            if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) {
+              showToast('已保存到手机 Pictures/AIChat/')
+            }
           }
         })
         .catch(() => {})

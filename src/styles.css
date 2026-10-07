@@ -1105,6 +1105,20 @@ body {
   padding: 10px 12px;
 }
 
+.d-path {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--txt-2);
+  font-family: Consolas, Monaco, monospace;
+  word-break: break-all;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.d-path:active {
+  color: var(--brand);
+}
+
 .d-meta {
   display: flex;
   flex-wrap: wrap;
