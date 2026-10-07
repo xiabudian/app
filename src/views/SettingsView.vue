@@ -49,9 +49,10 @@ function exportConfig() {
     exportedAt: new Date().toISOString(),
     settings: JSON.parse(JSON.stringify(settings)),
   }
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
-  downloadImage(url, `ai-chat配置_${new Date().toISOString().slice(0, 10)}.json`)
-  setTimeout(() => URL.revokeObjectURL(url), 3000)
+  saveBackupFile(JSON.stringify(data, null, 2), `ai-chat配置_${new Date().toISOString().slice(0, 10)}.json`)
+    .then((where) => {
+      showToast(where === 'app' ? '已保存到 下载/AIChat/' : '已下载到浏览器下载文件夹')
+    })
 }
 
 // 导入配置：覆盖当前的服务商 / Key / 模型等
