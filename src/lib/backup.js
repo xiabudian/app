@@ -1,5 +1,5 @@
 // 全量备份：配置（含 Key）+ 作品（含提示词与图片本体）
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { settings } from '../stores/settings'
 import { draw } from '../stores/draw'
 import { idbGet } from './idb'
@@ -54,8 +54,7 @@ export function applyBackup(data) {
 export async function saveBackupFile(json, filename) {
   if (Capacitor.isNativePlatform()) {
     try {
-      const Saver = Capacitor.getPlugin('Saver')
-      if (!Saver?.saveToDownloads) throw new Error('no saver plugin')
+      const Saver = registerPlugin('Saver')
       const b64 = btoa(unescape(encodeURIComponent(json)))
       await Saver.saveToDownloads({ data: b64, name: filename, mime: 'application/json' })
       return 'downloads' // 公共下载目录（文件管理可见）
