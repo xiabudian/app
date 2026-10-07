@@ -36,8 +36,8 @@ public class SaverPlugin extends Plugin {
             ContentValues v = new ContentValues();
             v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
             v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-            v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/AIChat");
-            Uri uri = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+            v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/AIChat");
+            Uri uri = getContext().getContentResolver().insert(MediaStore.Images.EXTERNAL_CONTENT_URI, v);
             OutputStream os = getContext().getContentResolver().openOutputStream(uri);
             os.write(bytes);
             os.close();
@@ -46,8 +46,8 @@ public class SaverPlugin extends Plugin {
                 ContentValues n = new ContentValues();
                 n.put(MediaStore.MediaColumns.DISPLAY_NAME, ".nomedia");
                 n.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
-                n.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/AIChat");
-                Uri nm = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, n);
+                n.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/AIChat");
+                Uri nm = getContext().getContentResolver().insert(MediaStore.Images.EXTERNAL_CONTENT_URI, n);
                 OutputStream nos = getContext().getContentResolver().openOutputStream(nm);
                 nos.write(0);
                 nos.close();
