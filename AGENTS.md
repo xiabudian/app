@@ -17,6 +17,8 @@ npx cap sync android  # dist 同步进安卓工程（CI 会自动做）
 
 云打包：`git push origin main` → GitHub Actions 自动编译 APK → 仓库 Actions 页面 Artifacts 下载。**不要本地打包**（无 Android SDK）。
 
+一键脚本（双击即可）：`启动网页版.bat` 起 dev；`云打包.bat` = 提交+推送+自动轮询 logs 分支等构建结果（直连失败自动走 7897 代理），成功/失败直接在窗口提示。
+
 ## 目录结构
 
 - `src/lib/` 接口层：`api.js`（流式对话/生图/错误处理）、`providers.js`（服务商预设：DeepSeek/xAI/魔搭/硅基流动/XPivot/ApiMart）、`storage.js`（localStorage+下载）、`idb.js`（图片存 IndexedDB）、`voice.js`（TTS/STT）、`keepalive.js`（前台保活）
