@@ -41,18 +41,6 @@ public class SaverPlugin extends Plugin {
             OutputStream os = getContext().getContentResolver().openOutputStream(uri);
             os.write(bytes);
             os.close();
-            // 保证图库不检索该目录
-            try {
-                ContentValues n = new ContentValues();
-                n.put(MediaStore.MediaColumns.DISPLAY_NAME, ".nomedia");
-                n.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
-                n.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/AIChat");
-                Uri nm = getContext().getContentResolver().insert(MediaStore.Images.EXTERNAL_CONTENT_URI, n);
-                OutputStream nos = getContext().getContentResolver().openOutputStream(nm);
-                nos.write(0);
-                nos.close();
-            } catch (Exception ignored) {
-            }
             JSObject out = new JSObject();
             out.put("uri", uri.toString());
             call.resolve(out);
