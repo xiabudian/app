@@ -1,5 +1,5 @@
 // localStorage 的读写封装：所有数据（Key、对话记录）都只存在本机浏览器里
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { showToast } from 'vant'
 
 export const KEYS = {
@@ -68,8 +68,7 @@ async function urlToBase64(url) {
 export async function saveImage(url, filename) {
   if (Capacitor.isNativePlatform()) {
     try {
-      const Saver = Capacitor.getPlugin('Saver')
-      if (!Saver?.saveToDownloads) throw new Error('Saver 插件未注册')
+      const Saver = registerPlugin('Saver')
       let base64 = ''
       if (url.startsWith('data:')) {
         base64 = url.split(',')[1]

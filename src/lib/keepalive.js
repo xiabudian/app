@@ -1,19 +1,17 @@
 // 生成期间的保活：APK 里启动前台服务（切到其他应用连接不断），网页端用屏幕常亮锁
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 
 let wakeLock = null
 
 export async function startKeepAlive() {
   try {
     if (Capacitor.isNativePlatform()) {
-      const FGS = Capacitor.getPlugin('ForegroundService')
-      if (FGS?.startForegroundService) {
-        await FGS.startForegroundService({
-          id: 1001,
-          title: 'AI 聊天助手',
-          body: '正在生成内容，可切换到其他应用',
-        })
-      }
+      const FGS = registerPlugin('ForegroundService')
+      await FGS.startForegroundService({
+        id: 1001,
+        title: 'AI 聊天助手',
+        body: '正在生成内容，可切换到其他应用',
+      })
       return
     }
     // 网页端：屏幕常亮锁（Chrome / Edge 支持）
@@ -31,8 +29,7 @@ export async function startKeepAlive() {
 export async function stopKeepAlive() {
   try {
     if (Capacitor.isNativePlatform()) {
-      const FGS = Capacitor.getPlugin('ForegroundService')
-      if (FGS?.stopForegroundService) await FGS.stopForegroundService()
+      await registerPlugin('ForegroundService').stopForegroundService()
     }
   } catch { /* ignore */ }
   try {
