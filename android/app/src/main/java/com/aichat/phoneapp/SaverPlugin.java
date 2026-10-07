@@ -3,6 +3,7 @@ package com.aichat.phoneapp;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 import com.getcapacitor.JSObject;
