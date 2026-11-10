@@ -63,6 +63,7 @@ public class SaverPlugin extends Plugin {
 
     private String guessMime(String name) {
         if (name.endsWith(".svg")) return "image/svg+xml";
+        if (name.endsWith(".txt")) return "text/plain";
         if (name.endsWith(".json")) return "application/json";
         return "image/png";
     }

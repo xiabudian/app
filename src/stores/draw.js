@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { showToast } from 'vant'
-import { loadJSON, saveJSON, KEYS, downloadImage, saveImage } from '../lib/storage'
+import { loadJSON, saveJSON, KEYS, downloadImage, saveImage, saveText } from '../lib/storage'
 import { idbPut, idbGet, idbDel } from '../lib/idb'
 import { generateImage, describeError } from '../lib/api'
 import { runComfyImage } from '../lib/comfy'
@@ -17,10 +17,24 @@ export const draw = reactive({
 let seq = Date.now()
 const genId = () => `${seq++}-${Math.random().toString(36).slice(2, 8)}`
 
+// 作品列表上限：列表只是「最近记录」缓存，永久档案靠自动保存到手机「下载/AIChat/」
+const MAX_WORKS = 200
+
+// 随图保存的提示词文本（与图片同目录同名 .txt）
+export function buildPromptText(item) {
+  let t = `提示词：\n${item.userPrompt || ''}`
+  if (item.prompt && item.prompt !== item.userPrompt) {
+    t += `\n\n完整提示词（含风格模板）：\n${item.prompt}`
+  }
+  t += `\n\n模型：${item.model || ''}`
+  if (item.time) t += `\n时间：${new Date(item.time).toLocaleString()}`
+  return t + '\n'
+}
+
 // 图片本体（data:image/...）转存 IndexedDB，localStorage 只存元数据；
 // http 链接（部分服务商返回临时链接）直接存字符串。
 function persistDraws() {
-  const keep = draw.results.slice(0, 30).map((r) => {
+  const keep = draw.results.slice(0, MAX_WORKS).map((r) => {
     const { image, ...rest } = r // 参考图太大不入库（重试仅在本次会话内可用）
     if (rest.url && rest.url.startsWith('data:')) {
       // 图片本体转存 IndexedDB，localStorage 只记标记
@@ -143,20 +157,21 @@ async function runGeneration(item, pid, conf, imageKey, { prompt, size, image })
     item.duration = Math.round((Date.now() - item.time) / 100) / 10
     draw.generating = draw.results.some((r) => r.loading)
     persistDraws()
-    // 开了自动下载：成功后直接保存（APK 存应用私有目录，图库不可见）
+    // 开了自动保存：成功后写入手机「下载/AIChat/」，图片+提示词各一份，列表清理也不丢失
     if (!item.error && item.url && settings.autoDownload) {
       const ext = item.url.startsWith('data:image/svg') ? 'svg' : 'png'
-      const name = `AI绘图_${(item.userPrompt || 'image').slice(0, 12)}_${item.id.slice(0, 6)}.${ext}`
-      saveImage(item.url, name)
+      const base = `AI绘图_${(item.userPrompt || 'image').slice(0, 12)}_${item.id.slice(0, 6)}`
+      saveImage(item.url, `${base}.${ext}`)
         .then((where) => {
-          if (where === 'app') {
-            item.savedPath = `/storage/emulated/0/Pictures/AIChat/${name}`
+          if (where === 'downloads') {
+            item.savedPath = `/storage/emulated/0/Download/AIChat/${base}.${ext}`
             if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) {
-              showToast('已保存到手机 Pictures/AIChat/')
+              showToast('已自动保存到手机 下载/AIChat/')
             }
           }
         })
         .catch(() => {})
+      saveText(buildPromptText(item), `${base}.txt`).catch(() => {})
     }
     if (ui.tab !== TAB.DRAW && ui.tab !== TAB.WORKS) draw.unseen++
   }
@@ -210,9 +225,9 @@ export async function generateDraw({ prompt, size, image, stylePrompt }) {
     loading: true,
     time: Date.now(),
   })
-  if (draw.results.length > 30) {
-    purgeImages(draw.results.slice(30))
-    draw.results.length = 30
+  if (draw.results.length > MAX_WORKS) {
+    purgeImages(draw.results.slice(MAX_WORKS))
+    draw.results.length = MAX_WORKS
   }
   // 必须通过响应式代理修改（直接改 unshift 进去的原始对象，界面不会更新）
   const item = draw.results[0]

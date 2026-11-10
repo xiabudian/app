@@ -2,10 +2,10 @@
 import { computed, ref, watch, onUnmounted } from 'vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
-import { draw, removeWork, removeWorks, retryDraw } from '../stores/draw'
+import { draw, removeWork, removeWorks, retryDraw, buildPromptText } from '../stores/draw'
 import { ui, TAB } from '../stores/ui'
 import { showImagePreview, showConfirmDialog, showToast } from 'vant'
-import { saveImage } from '../lib/storage'
+import { saveImage, saveText } from '../lib/storage'
 
 const managing = ref(false) // 批量管理模式
 const selectedIds = ref([])
@@ -165,11 +165,12 @@ async function retry(r) {
 async function saveWork(r) {
   if (!r.url) return
   const ext = r.url.startsWith('data:image/svg') ? 'svg' : 'png'
-  const name = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}.${ext}`
+  const base = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}`
   try {
-    const where = await saveImage(r.url, name)
-    if (where === 'app') r.savedPath = `/storage/emulated/0/Pictures/AIChat/${name}`
-    showToast(where === 'app' ? '已存到手机 Pictures/AIChat/' : '已下载到「下载」文件夹')
+    const where = await saveImage(r.url, `${base}.${ext}`)
+    if (where === 'downloads') r.savedPath = `/storage/emulated/0/Download/AIChat/${base}.${ext}`
+    showToast(where === 'downloads' ? '已保存到手机 下载/AIChat/' : '已下载到「下载」文件夹')
+    await saveText(buildPromptText(r), `${base}.txt`)
   } catch (e) {
     showToast('保存失败：' + (e?.message || e))
   }

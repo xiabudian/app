@@ -103,6 +103,28 @@ export async function saveImage(url, filename) {
   return 'download'
 }
 
+/**
+ * 保存文本文件（随图保存的提示词等）。
+ * APK：与图片一样通过 MediaStore 写入「下载/AIChat/」；网页：走浏览器下载。
+ */
+export async function saveText(text, filename) {
+  if (Capacitor.isNativePlatform()) {
+    const Saver = registerPlugin('Saver')
+    const bytes = new TextEncoder().encode(text)
+    let bin = ''
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+    await Saver.saveToDownloads({ data: btoa(bin), name: filename })
+    return 'downloads'
+  }
+  const obj = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = obj
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(obj), 3000)
+  return 'download'
+}
+
 // 触发浏览器下载：http/data 链接都先转 blob，保证 download 文件名生效
 export async function downloadImage(url, filename) {
   try {

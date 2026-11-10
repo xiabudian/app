@@ -345,7 +345,8 @@ async function onClear() {
         </van-cell-group>
 
       <van-cell-group inset title="保存与备份">
-        <van-cell center title="生成后自动下载图片" label="保存到浏览器的「下载」文件夹；下载位置可在浏览器设置中修改">
+        <van-cell center title="生成后自动保存" label="每张图自动存到手机「下载/AIChat/」，同名 .txt 是提示词；作品列表清理也不丢失">
+
           <template #right-icon>
             <van-switch v-model="settings.autoDownload" size="22" />
           </template>

@@ -30,7 +30,7 @@ function buildSettings() {
     chatProvider: 'demo',
     imageProvider: 'demo',
     systemPrompt: '',
-    autoDownload: false, // 生成成功后自动下载图片到「下载」文件夹
+    autoDownload: true, // 生成成功后自动保存图片+提示词到手机「下载/AIChat/」，作品列表只是最近记录
     ttsModel: 'tts-1', // 语音合成模型
     sttModel: 'whisper-1', // 语音识别模型
     welcomed: false, // 是否看过首次欢迎页
