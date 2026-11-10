@@ -66,6 +66,34 @@ for (const r of draw.results) {
   }
 }
 
+// 被挤下列表前把图片+提示词落盘到手机「下载/AIChat/」（删 IDB 本体之前的最后兜底）
+async function loadWorkUrl(r) {
+  if (r.url) return r.url
+  if (r.idb && r.id) {
+    const u = await idbGet(r.id).catch(() => '')
+    if (u) {
+      r.url = u
+      return u
+    }
+  }
+  return ''
+}
+
+async function archiveWorks(items) {
+  if (!items.length) return 0
+  let saved = 0
+  for (const r of items) {
+    const base = `AI绘图_${(r.userPrompt || 'image').slice(0, 12)}_${r.id.slice(0, 6)}`
+    const url = await loadWorkUrl(r)
+    if (!url) continue
+    const ext = url.startsWith('data:image/svg') ? 'svg' : 'png'
+    await saveImage(url, `${base}.${ext}`).catch(() => {})
+    await saveText(buildPromptText(r), `${base}.txt`).catch(() => {})
+    saved++
+  }
+  return saved
+}
+
 function purgeImages(items) {
   for (const r of items) {
     if (r.id) idbDel(r.id).catch(() => {})
@@ -226,8 +254,12 @@ export async function generateDraw({ prompt, size, image, stylePrompt }) {
     time: Date.now(),
   })
   if (draw.results.length > MAX_WORKS) {
-    purgeImages(draw.results.slice(MAX_WORKS))
+    // 兜底：先落盘再删 IndexedDB 本体——挤下的每条作品，图片+提示词必须先到手机
+    const removed = draw.results.slice(MAX_WORKS)
+    const saved = await archiveWorks(removed)
+    purgeImages(removed)
     draw.results.length = MAX_WORKS
+    if (saved) showToast(`${saved} 张旧作品已先保存到手机 下载/AIChat/`)
   }
   // 必须通过响应式代理修改（直接改 unshift 进去的原始对象，界面不会更新）
   const item = draw.results[0]
