@@ -26,8 +26,28 @@ export function saveJSON(key, value) {
   }
 }
 
-// 把上传的图片压到最长边 1024px 的 JPEG，否则 base64 存 localStorage 很容易超容量
-export function compressImage(dataUrl, maxSize = 1024, quality = 0.85) {
+// 压缩上传的图片到最长边 1024px 的 JPEG。
+// 优先走 createImageBitmap 低分辨率解码：Chromium 内部直接缩放解码，
+// 内存占用恒定（不受原图分辨率影响），几十 MB 的大图也不会撑爆 WebView；
+// 旧路径 new Image() 全量解码会把 48MP 原图整个进内存，容易 OOM 崩溃。
+export async function compressImage(dataUrl, maxSize = 1024, quality = 0.85) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const blob = await (await fetch(dataUrl)).blob()
+      const bmp = await createImageBitmap(blob, { resizeWidth: maxSize })
+      const scale = Math.min(1, maxSize / Math.max(bmp.width, bmp.height))
+      const width = Math.round(bmp.width * scale)
+      const height = Math.round(bmp.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d').drawImage(bmp, 0, 0, width, height)
+      bmp.close()
+      return canvas.toDataURL('image/jpeg', quality)
+    } catch {
+      // 某些老 WebView/特殊图片不支持时，走兜底路径
+    }
+  }
   return new Promise((resolve) => {
     const img = new Image()
     img.onload = () => {

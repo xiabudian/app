@@ -78,7 +78,7 @@ async function afterRead(status) {
 }
 
 function onOversize() {
-  showToast('参考图不能超过 10MB')
+  showToast('参考图不能超过 30MB')
 }
 
 let lastGenAt = 0 // 防抖：1.2 秒内重复点击只生效一次
@@ -146,7 +146,7 @@ async function onGenerate() {
             :max-count="1"
             :after-read="afterRead"
             :preview-size="[64, 64]"
-            :max-size="10 * 1024 * 1024"
+            :max-size="30 * 1024 * 1024"
             @oversize="onOversize"
           />
           <div class="tip">上传参考图，用支持编辑的模型（如 Qwen-Image-Edit），下方描述要怎么改</div>
