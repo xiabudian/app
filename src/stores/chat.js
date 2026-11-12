@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import { showToast } from 'vant'
 import { loadJSON, saveJSON, KEYS } from '../lib/storage'
 import { streamChat, describeError } from '../lib/api'
+import { getSkill } from '../lib/skills'
 import { settings, providerRef } from './settings'
 import { appVisibility } from './ui'
 import { startKeepAlive, stopKeepAlive } from '../lib/keepalive'
@@ -82,7 +83,7 @@ function buildContent(m) {
   return m.content || ''
 }
 
-export async function sendMessage(text, images = []) {
+export async function sendMessage(text, images = [], skillId = '') {
   if (chat.streaming) return
   if (!text && !images.length) return
 
@@ -96,7 +97,8 @@ export async function sendMessage(text, images = []) {
   let conv = currentConv()
   if (!conv) conv = newConversation()
 
-  conv.messages.push({ role: 'user', content: text, images, time: Date.now() })
+  const skill = getSkill(skillId)
+  conv.messages.push({ role: 'user', content: text, images, time: Date.now(), skillId: skill?.id || '', skillName: skill?.name || '' })
   // 第一条消息自动作为对话标题
   const firstUser = conv.messages.find((m) => m.role === 'user')
   if (conv.messages.filter((m) => m.role === 'user').length === 1 && firstUser) {
@@ -124,12 +126,15 @@ async function generate(conv) {
   await startKeepAlive() // 生成期间保活：切到其他应用连接不断
 
   const conf = providerRef(settings.chatProvider)
+  // 技能从最后一条用户消息读取：新发送带上了 skillId，重新生成时自动沿用同一条消息的技能
+  const lastUser = [...conv.messages].reverse().find((m) => m.role === 'user')
+  const skill = getSkill(lastUser?.skillId || '')
   try {
     await streamChat({
       baseUrl: conf.baseUrl,
       apiKey: conf.apiKey,
       model: conf.model,
-      systemPrompt: settings.systemPrompt,
+      systemPrompt: [settings.systemPrompt, skill?.prompt].filter(Boolean).join('\n\n'),
       signal: chat.abortCtrl.signal,
       messages: conv.messages
         .filter((m) => m.role === 'user' || (m.role === 'assistant' && (m.content || m.reasoning)))

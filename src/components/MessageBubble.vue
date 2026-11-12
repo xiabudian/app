@@ -93,7 +93,10 @@ async function copyText() {
           </div>
         </template>
       </template>
-      <div v-else class="bubble" :class="{ streaming: msg.streaming }">{{ msg.content }}</div>
+      <template v-else>
+        <div v-if="msg.skillName" class="skill-tag"><van-icon name="apps-o" /> {{ msg.skillName }}</div>
+        <div class="bubble" :class="{ streaming: msg.streaming }">{{ msg.content }}</div>
+      </template>
 
       <div v-if="msg.error" class="error">{{ msg.error }}</div>
 

@@ -30,8 +30,8 @@ watch(
   { flush: 'post', immediate: true }
 )
 
-async function onSend({ text, images }) {
-  const r = await sendMessage(text, images)
+async function onSend({ text, images, skillId }) {
+  const r = await sendMessage(text, images, skillId)
   if (r === 'need-setup') ui.tab = TAB.SETTINGS
 }
 
