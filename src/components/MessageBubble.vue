@@ -33,11 +33,29 @@ watch(
 )
 onUnmounted(() => timer && clearInterval(timer))
 
-// 模型输出大多是 Markdown，渲染成 HTML 前必须用 DOMPurify 消毒，防止注入
+// 模型输出大多是 Markdown，渲染成 HTML 前必须用 DOMPurify 消毒，防止注入；
+// 消毒后给每个代码块注入独立复制按钮（点按钮只复制该块，见 onMdClick）
 const rendered = computed(() => {
   if (props.msg.role !== 'assistant') return ''
-  return DOMPurify.sanitize(marked.parse(props.msg.content || ''))
+  const html = DOMPurify.sanitize(marked.parse(props.msg.content || ''))
+  return html
+    .replace(/<pre>/g, '<div class="pre-wrap"><button class="code-copy-btn" type="button">⧉ 复制</button><pre>')
+    .replace(/<\/pre>/g, '</pre></div>')
 })
+
+// 事件委托：代码块复制按钮 → 只复制那一块的代码文本
+async function onMdClick(e) {
+  const btn = e.target.closest('.code-copy-btn')
+  if (!btn) return
+  const pre = btn.parentElement?.querySelector('pre')
+  if (!pre) return
+  try {
+    await navigator.clipboard.writeText(pre.innerText || '')
+    showToast('代码已复制')
+  } catch {
+    showToast('复制失败')
+  }
+}
 
 async function copyText() {
   try {
@@ -78,7 +96,7 @@ async function copyText() {
           <span class="thinking-txt">正在思考…</span>
         </div>
         <template v-else>
-          <div class="bubble md" :class="{ streaming: msg.streaming }" v-html="rendered"></div>
+          <div class="bubble md" :class="{ streaming: msg.streaming }" v-html="rendered" @click="onMdClick"></div>
           <button
             v-if="!msg.streaming && msg.content"
             class="b-copy"

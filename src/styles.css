@@ -417,6 +417,39 @@ body {
   font-size: 13px;
 }
 
+/* 代码块独立复制按钮：悬在深色代码块右上角；气泡文本允许长按选中部分复制 */
+.pre-wrap {
+  position: relative;
+  margin-top: 8px;
+}
+
+.pre-wrap .code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  border: 1px solid rgba(226, 232, 240, 0.25);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pre-wrap .code-copy-btn:active {
+  background: rgba(226, 232, 240, 0.18);
+}
+
+.bubble,
+.bubble.md {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .md code {
   font-family: Consolas, Monaco, monospace;
 }
