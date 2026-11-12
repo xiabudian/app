@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
         // （与 themes.xml 中的 windowOptOutEdgeToEdgeEnforcement 双保险）
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         registerPlugin(SaverPlugin.class);
+        registerPlugin(WebViewKeeperPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

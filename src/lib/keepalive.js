@@ -12,6 +12,11 @@ export async function startKeepAlive() {
         title: 'AI 聊天助手',
         body: '正在生成内容，可切换到其他应用',
       })
+      // 防 WebView 暂停：切后台后安卓会暂停 JS，SSE 流没人消费就被服务商掐断，
+      // 这里周期性唤醒 WebView 让流式回复在后台继续（随前台服务一起启停）
+      try {
+        await registerPlugin('WebViewKeeper').startKeepResuming()
+      } catch { /* 不影响主流程 */ }
       return
     }
     // 网页端：屏幕常亮锁（Chrome / Edge 支持）
@@ -29,6 +34,9 @@ export async function startKeepAlive() {
 export async function stopKeepAlive() {
   try {
     if (Capacitor.isNativePlatform()) {
+      try {
+        await registerPlugin('WebViewKeeper').stopKeepResuming()
+      } catch { /* ignore */ }
       await registerPlugin('ForegroundService').stopForegroundService()
     }
   } catch { /* ignore */ }
